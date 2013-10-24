@@ -21,6 +21,7 @@
 %    Allison Nugent, Krystle Barhaghi, Denise Rallis, Peter Herscovitch,
 %    Richard E. Carson  and Wayne C. Drevets 
 %
+% http://onlinelibrary.wiley.com/doi/10.1111/j.1460-9568.2011.07642.x/full
 %  usage:
 %    http://arnold/dokuwiki/doku.php?id=howto:experiments:slottask
 %
@@ -54,6 +55,7 @@ function SlotTask(varargin)
   %% start recording data
   % sets txtfid, subject.*, start, etc 
   start=1; % before we know anything, we think we'll start at the beginning
+  score=0;
   txtfid=getSubjInfo();
 
 
@@ -105,7 +107,7 @@ function SlotTask(varargin)
      % grab file (assumed to exist), read iamge, add alpha information
      % save in slotimg struct
      % e.g. slotimg.CHOOSE='slotimgs/CHOOSE.png'
-     for slotimgnames={'CHOOSE','WIN','NOWIN','XXX','HASH'}'
+     for slotimgnames={'CHOOSE','BLUR','WIN','NOWIN','XXX','HASH'}
         stimfilename=strcat('imgs/',slotimgnames{1},'.png');
         [imdata, colormap, alpha]=imread(stimfilename);
         imdata(:, :, 4) = alpha(:, :); 
@@ -122,8 +124,9 @@ function SlotTask(varargin)
      wavedata=wavedata';
      nrchannels = size(wavedata,1);
      % 2nd to last arg should be sndFreq, but portaudio returns error w/it
-     pahandle= PsychPortAudio('Open', [], [], [], [], nrchannels);
-     PsychPortAudio('FillBuffer',pahandle,wavedata);
+     %todo fix sounds
+     %pahandle= PsychPortAudio('Open', [], [], [], [], nrchannels);
+     %PsychPortAudio('FillBuffer',pahandle,wavedata);
      
      
      
@@ -150,7 +153,7 @@ function SlotTask(varargin)
 
         % inialize the order of events only if we arn't resuming
         %order=cell(length(experiment{facenumC}),1);
-        order=cell(); % variable length!
+        order=cell(100,1); % variable length!
      
      % subjects know the drill. Give them breif instructions
      % order is already init. and loaded from mat, so don't work about it
@@ -163,7 +166,7 @@ function SlotTask(varargin)
      %% wait for scanner start
      DrawFormattedText(w, ['Get Ready (waiting for scanner "^")\n'],'center','center',black);
      Screen('Flip', w);
-     waitForResponse(KbName('6^'))
+     waitForResponse('6^')
      StartOfRunTime = GetSecs();
      
      i=start; % fixation calls drawRect which uses i to get the block number   
@@ -187,15 +190,16 @@ function SlotTask(varargin)
         else            prevchoice=0; end
         
         % get choice, must be different than previous
-        choice=prevchoice;
+        response=prevchoice;
         numattempts=0;
-        while(choice==prevchoice)  
-         [rspnstime, choice] = chooseFruit(numattempts);
+        while(response==prevchoice)  
+         [rspnstime, response] = chooseFruit(numattempts);
          numattempts=numattempts+1;
         end
         
         
-        
+        trialscore=scoreTrial(trialnum,score,blocktype);
+        score=score+trialscore;
         %% SHOW SPIN
         Screen('DrawTexture', w,  slotimg.BLUR  ); 
         Screen('Flip', w);
@@ -215,7 +219,7 @@ function SlotTask(varargin)
         %TODO!! What should be recorded
         % wrap up: show/save info
         % trialnum\tstartime\tresponse\ trialscore total
-        trialinfo = { blocktype trialnum trailStartTime rspnstime response trailscore score };
+        trialinfo = { blocktype trialnum trailStartTime rspnstime response trialscore score };
         order(i) = {trialinfo};
         
         
@@ -224,7 +228,7 @@ function SlotTask(varargin)
             fprintf(txtfid,'blocktype\ttrialnum\tstartime\tresponse\tresponsetime\ttrialscore\ttotal\n');
         end
         
-        fprintf(txtfid,'%s\t',order{i}(1) );
+        fprintf(txtfid,'%s\t',order{i}{1} );
         fprintf(txtfid,'%i\t',order{i}{2} );
         fprintf(txtfid,'%.03f\t',order{i}{3:4} );
         fprintf(txtfid,'%d\t',order{i}{5:6} );
@@ -239,7 +243,7 @@ function SlotTask(varargin)
         
         %% debug, show time of this trial
         if(opts.DEBUG)        
-          timing.end= GetSecs() - startOfTrial;
+          timing.end= GetSecs() - trailStartTime;
           fprintf('%d: (%f,%f) %f\n',i, timing.start, timing.end,timing.end-timing.start);
         end
 
@@ -390,24 +394,24 @@ function seconds = waitForResponse(varargin)
                 end
                 
                 % we have a mat, but did we stop when we should have?
-                if  localVar.subject.run_num == 1 && ...
-                   localVar.trialnum == halfwaypt;
-                    
-                    fprintf('incrementing run_num and assuming reload\n');
-                    resume = 'y';
-                    localVar.subject.run_num=2;
-                    localVar.trialnum=halfwaypt+1; 
-                    % need to increment trial here 
-                    % b/c we exit before incrementing i earlier
-                    % and we'll get stuck in a one trial loop otherwise
-                
-                % no where we expect, maybe psychtoolbox crashed
-                % prompt if we want to restart
-                else
-                    fprintf('not auto resuming b/c run=%d and trail=%d\n\n',...
-                        localVar.subject.run_num,localVar.trialnum)
-                    resume = lower(input('Want to load previous session (y or n)? ','s'));
-                end
+%                 if  localVar.subject.run_num == 1 && ...
+%                    localVar.trialnum == halfwaypt;
+%                     
+%                     fprintf('incrementing run_num and assuming reload\n');
+%                     resume = 'y';
+%                     localVar.subject.run_num=2;
+%                     localVar.trialnum=halfwaypt+1; 
+%                     % need to increment trial here 
+%                     % b/c we exit before incrementing i earlier
+%                     % and we'll get stuck in a one trial loop otherwise
+%                 
+%                 % no where we expect, maybe psychtoolbox crashed
+%                 % prompt if we want to restart
+%                 else
+%                     fprintf('not auto resuming b/c run=%d and trail=%d\n\n',...
+%                         localVar.subject.run_num,localVar.trialnum)
+                     resume = lower(input('Want to load previous session (y or n)? ','s'));
+%                 end
        
                 %
                 % if we auto incremented run_num
