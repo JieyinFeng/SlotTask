@@ -26,8 +26,9 @@
 %    http://arnold/dokuwiki/doku.php?id=howto:experiments:slottask
 %
 % TODO/DONE
-%  [ ] write task skeleton
-%  [ ] insert pictures
+%  [x] write task skeleton
+%  [x] insert pictures
+%     [ ] are alarm and money okay?
 %  [ ] establish scoring (how to do 1/4 breakdown
 %  [ ] fix instructions
 %  [ ] What information needs to be saved?
@@ -36,6 +37,7 @@
 %
 % 20131024 - WF
 %  - start coding, copy of CogEmoFaceReward  
+%  - have slot pictures
 
 
 function SlotTask(varargin)
@@ -120,7 +122,7 @@ function SlotTask(varargin)
      % http://wiki.stdout.org/matlabcookbook/Presenting%20auditory%20stimuli/Playing%20sounds/
      
      InitializePsychSound;
-     [wavedata, sndFreq] = audioread('incorrect.wav');
+     [wavedata, sndFreq] = audioread('snd/incorrect.wav');
      wavedata=wavedata';
      nrchannels = size(wavedata,1);
      % 2nd to last arg should be sndFreq, but portaudio returns error w/it
@@ -198,7 +200,7 @@ function SlotTask(varargin)
         end
         
         
-        trialscore=scoreTrial(trialnum,score,blocktype);
+        [imgtype, trialscore] =scoreTrial(trialnum,score,blocktype);
         score=score+trialscore;
         %% SHOW SPIN
         Screen('DrawTexture', w,  slotimg.BLUR  ); 
@@ -206,7 +208,7 @@ function SlotTask(varargin)
         WaitSecs(.5);
         
         %% SHOW RESULTS (maybe play a sound)
-        Screen('DrawTexture', w,  slotimg.WIN  ); 
+        Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
         Screen('Flip', w);
         WaitSecs(1);
         
@@ -346,16 +348,39 @@ function seconds = waitForResponse(varargin)
 
 
    %% score: 1/4 of the time correct
-   function score=scoreTrial(trial,numcorrect,blocktype)
-     score=1;
-%        if(strcmp(blocktype,'WINBLOCK'))
-%            % maybe check to see if they should win based on the number of
-%            % trials and how many correct they've already won
-%            score=1;
-%        else
-%            score=0;
-%        end
-           
+   function [imgtype, score]=scoreTrial(trial,numcorrect,blocktype)
+      %% score should be random, win 1/4 of the time
+      score=0;
+%       if(numcorrect*4 < trial )
+%         % maybe check to see if they should win based on the number of
+%         % trials and how many correct they've already won
+%         randscore=1;
+%       else
+%         randscore=0;
+%       end
+      randscore=0;
+      if(random('unif',0,1) >= .75 )
+          randscore=1;
+      end
+      %% we might return 4 different images
+      % depends on blocktype and win/lose status
+      if(strcmp(blocktype,'WINBLOCK'))
+          if(randscore>0)
+            imgtype='WIN' ;
+            score=randscore;
+            %todo: play win sound
+          else
+            imgtype='NOWIN';
+          end
+        else
+          if(trialscore>0)
+            imgtype='HASH' ;
+            %todo: play tick noise
+          else
+            imgtype='XXX';
+          end
+            
+       end
    end
     
 
