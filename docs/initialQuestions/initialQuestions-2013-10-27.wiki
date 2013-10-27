@@ -1,8 +1,11 @@
-%% wiki file for presentaion
-%% move to tex file with wiki2beamer
-%%  http://wiki2beamer.sourceforge.net/
-%% e.g.
-%% wiki2beamer initialQuestions-2013-10-27.wiki > initialQuestions-2013-10-27.tex; pdflatex initialQuestions-2013-10-27.tex
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% \\
+ %% wiki file for presentaion    \\
+ %% move to tex file with        \\
+ %% [http://wiki2beamer.sourceforge.net/|wiki2beamer ] \\
+ %% i.e.                         \\
+ %%   wiki2beamer initialQuestions-2013-10-27.wiki > initialQuestions-2013-10-27.tex; pdflatex initialQuestions-2013-10-27.tex
+ %% \\ present with e.g. [http://davvil.github.io/pdfpc/|pdfpc]  \\
+ %% or [http://pdfpresenter.sourceforge.net/] \\
 
 <[autotemplate]
 documentclass={beamer}
@@ -10,6 +13,7 @@ usepackage={listings}
 usepackage={wasysym}
 usepackage={graphicx}
 usepackage={multirow}
+usepackage={soul}
 title={PET/fMRI Slot Task}
 date={\today}
 lstdefinestyle={basic}{....}
@@ -23,18 +27,32 @@ usetheme={Amsterdam}
 ==== ====
 <<<./whiteboard.jpeg,height=\textheight>>>
 === Review ===
-==== Their Task ====
-* TODO: detail other paper
+==== Martin-Soelch Task ====
+<[columns]
+[[[0.4\textwidth]]]
+* <1-> wait indefinitely for button push?
+* <2-> long inter-stimulus intervals
+* <3-> 8 one-minute breaks for each block?
+* <4-> shown score
+[[[0.4\textwidth]]]
+<<<../papers/Martin-SoelchPaper/task.png,width=\textwidth>>>  \\
+<<<../papers/Martin-SoelchPaper/scans.png,width=\textwidth>>> \\
++<3->{
+ <<<../papers/Martin-SoelchPaper/fatigueQuote.png,width=\textwidth>>>\\
+ } 
+[columns]>
+<<<../papers/Martin-SoelchPaper/taskcaption.png,width=.8\textwidth>>> \\
 ==== Our Task ====
-<<<../../imgs/CHOOSE.png,height=.3\textheight>>>
-<<<../../imgs/BLUR.png,height=.3\textheight>>>
+<<<../../imgs/EMPTY.png, height=.4\textheight>>>
+<<<../../imgs/CHOOSE.png,height=.4\textheight>>>
+<<<../../imgs/BLUR.png,  height=.4\textheight>>>
 \\
-<<<../../imgs/NOWIN.png,height=.3\textheight>>>
-<<<../../imgs/WIN.png,height=.3\textheight>>>
-<<<../../imgs/XXX.png,height=.3\textheight>>>
-<<<../../imgs/HASH.png,height=.3\textheight>>>
+<<<../../imgs/NOWIN.png,height=.4\textheight>>> or 
+<<<../../imgs/WIN.png,  height=.4\textheight>>> OR 
+<<<../../imgs/XXX.png,  height=.4\textheight>>> or
+<<<../../imgs/HASH.png, height=.4\textheight>>>
 \\ 
-score is:
+\st{score is:}  % (((no competing WM signal)))
 === Low Hanging Fruit ===
 ==== Instructions ====
 Tell participants
@@ -53,13 +71,19 @@ For each trial, record
 ** fixed distribution for everyone?
 ** pre-generated list
 ** totally random
+==== [$^{11}$C]raclopride and SM task ====
+* Martin-Soelch et al. used only $^1/_2$ of SM block
+<<<../papers/Martin-SoelchPaper/SMvsRW.png,width=.8\textwidth>>> \\
 
 === Harder Questions ===
 ==== Imaging and TR ====
 * Whole brain coverage
 ** Multiband (TR=1, n.slices=60)
 ** need to talk to Tae, might not be possible
+** resolution is $\approx 3mm^3$?
 * VTA only (TR=?)
 ** TODO: READ VTA nature paper
+** resolution is $\approx 1mm^3$?
+** SNR is ??
 
 
