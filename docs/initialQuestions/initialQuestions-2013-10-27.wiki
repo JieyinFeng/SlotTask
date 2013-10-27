@@ -1,0 +1,57 @@
+%% wiki file for presentaion
+%% move to tex file with wiki2beamer
+%%  http://wiki2beamer.sourceforge.net/
+%% e.g.
+%% wiki2beamer initialQuestions-2013-10-27.wiki > initialQuestions-2013-10-27.tex; pdflatex initialQuestions-2013-10-27.tex
+
+<[autotemplate]
+documentclass={beamer}
+usepackage={listings}
+usepackage={wasysym}
+usepackage={graphicx}
+usepackage={multirow}
+title={Flux pre-poster}
+date={\today}
+lstdefinestyle={basic}{....}
+titleframe=False
+usetheme={Amsterdam}
+[autotemplate]>
+
+
+== Slot Task ==
+=== Overview  ===
+==== ====
+<<<./whiteboard.jpeg,height=\textheight>>>
+=== Review ===
+==== Their Task ====
+* TODO: detail other paper
+==== Our Task ====
+* TODO: detail our task
+=== Low Hanging Fruit ===
+==== Instructions ====
+Tell participants
+* no pattern
+* win/loose independent of response
+* two blocks
+==== Behavioral recordings ====
+For each trial, record
+* response
+* response time
+* reward
+==== Randomness ====
+* Trials
+** Win half, at most 3 losses?
+* Runs (win/lose trial list)
+** fixed distribution for everyone?
+** pre-generated list
+** totally random
+
+=== Harder Questions ===
+==== Imaging and TR ====
+* Whole brain coverage
+** Multiband (TR=1, n.slices=60)
+** need to talk to Tae, might not be possible
+* VTA only (TR=?)
+** TODO: READ VTA nature paper
+
+
