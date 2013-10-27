@@ -10,7 +10,7 @@ usepackage={listings}
 usepackage={wasysym}
 usepackage={graphicx}
 usepackage={multirow}
-title={Flux pre-poster}
+title={PET/fMRI Slot Task}
 date={\today}
 lstdefinestyle={basic}{....}
 titleframe=False
@@ -26,7 +26,15 @@ usetheme={Amsterdam}
 ==== Their Task ====
 * TODO: detail other paper
 ==== Our Task ====
-* TODO: detail our task
+<<<../../imgs/CHOOSE.png,height=.3\textheight>>>
+<<<../../imgs/BLUR.png,height=.3\textheight>>>
+\\
+<<<../../imgs/NOWIN.png,height=.3\textheight>>>
+<<<../../imgs/WIN.png,height=.3\textheight>>>
+<<<../../imgs/XXX.png,height=.3\textheight>>>
+<<<../../imgs/HASH.png,height=.3\textheight>>>
+\\ 
+score is:
 === Low Hanging Fruit ===
 ==== Instructions ====
 Tell participants
