@@ -23,7 +23,6 @@ usetheme={Amsterdam}
 
 
 == Slot Task ==
-=== Overview  ===
 ==== ====
 <<<./whiteboard.jpeg,height=\textheight>>>
 === The Slot Task ===
