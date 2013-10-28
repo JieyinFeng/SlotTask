@@ -57,13 +57,17 @@ Your score is: (Do we want this?) % (((no competing WM signal)))
 <<<../../imgs/BLUR.png,  height=.4\textheight>>> \\
 
 ==== Timing/Length of Trial events ====
-
+<[columns]
+[[[.3\textwidth]]]
 # Cue and input
 # Anticipation
 # Outcome
 # "Fixation"
-# How long should each of these be?
-# Where should we include jitter?
+[[[.7\textwidth]]]
+* How long should each of these be?
+* Where should we include jitter?
+* Group by TR? What if cardiac gated?
+[columns]>
 
 
 
