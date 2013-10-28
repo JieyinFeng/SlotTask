@@ -121,10 +121,10 @@ function SlotTask(varargin)
      % http://docs.psychtoolbox.org/PsychPortAudio
      % http://wiki.stdout.org/matlabcookbook/Presenting%20auditory%20stimuli/Playing%20sounds/
      
-     InitializePsychSound;
-     [wavedata, sndFreq] = audioread('snd/incorrect.wav');
-     wavedata=wavedata';
-     nrchannels = size(wavedata,1);
+     %InitializePsychSound;
+     %[wavedata, sndFreq] = audioread('snd/incorrect.wav');
+     %wavedata=wavedata';
+     %nrchannels = size(wavedata,1);
      % 2nd to last arg should be sndFreq, but portaudio returns error w/it
      %todo fix sounds
      %pahandle= PsychPortAudio('Open', [], [], [], [], nrchannels);
