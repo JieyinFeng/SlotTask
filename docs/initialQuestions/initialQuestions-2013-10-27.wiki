@@ -65,7 +65,9 @@ Your score is: (Do we want this?) % (((no competing WM signal)))
 # "Fixation"
 [[[.7\textwidth]]]
 * How long should each of these be?
+* How do we deal with input (sleeping subj)
 * Where should we include jitter?
+** How do we optimize the sequence if card. gated
 * Group by TR? What if cardiac gated?
 [columns]>
 
