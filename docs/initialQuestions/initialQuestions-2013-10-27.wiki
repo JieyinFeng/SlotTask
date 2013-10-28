@@ -91,9 +91,8 @@ Is there anything else we should record?
 ** Totally random
 ==== [$^{11}$C]raclopride and SM task ====
 * Martin-Soelch et al. used only $^1/_2$ of SM block
-* Could start collecting PET earlier and collect less for SM condition?
+* Could start collecting PET earlier? Collect less for SM condition?
 <<<../papers/Martin-SoelchPaper/SMvsRW.png,width=.8\textwidth>>> \\
-==== [$^{11}$C]raclopride absorption ====
 === Harder Questions ===
 ==== Imaging and TR ====
 <[columns]
