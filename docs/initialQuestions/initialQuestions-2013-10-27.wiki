@@ -26,14 +26,14 @@ usetheme={Amsterdam}
 === Overview  ===
 ==== ====
 <<<./whiteboard.jpeg,height=\textheight>>>
-=== Review ===
+=== The Slot Task ===
 ==== Martin-Soelch Task ====
 <[columns]
 [[[0.4\textwidth]]]
-* <1-> wait indefinitely for button push?
+* <1-> Wait indefinitely for button push?
 * <2-> .5s + 1s + 1s + 1s of black screen
 * <3-> 8 one-minute breaks in each block?
-* <4-> shown score (WM)
+* <4-> Shown score (WM)
 [[[0.4\textwidth]]]
 <<<../papers/Martin-SoelchPaper/task.png,width=\textwidth>>>  \\
 <<<../papers/Martin-SoelchPaper/scans.png,width=\textwidth>>> \\
@@ -42,7 +42,7 @@ usetheme={Amsterdam}
  } 
 [columns]>
 <<<../papers/Martin-SoelchPaper/taskcaption.png,width=.8\textwidth>>> \\
-==== Our Task ====
+==== Our (much prettier) Task ====
 <<<../../imgs/EMPTY.png, height=.4\textheight>>>
 <<<../../imgs/CHOOSE.png,height=.4\textheight>>>
 <<<../../imgs/BLUR.png,  height=.4\textheight>>> \\
@@ -50,28 +50,48 @@ usetheme={Amsterdam}
 <<<../../imgs/WIN.png,  height=.4\textheight>>> OR 
 <<<../../imgs/XXX.png,  height=.4\textheight>>> or
 <<<../../imgs/HASH.png, height=.4\textheight>>> \\ 
-{Your score is:} (Do we want this?) % (((no competing WM signal)))
+Your score is: (Do we want this?) % (((no competing WM signal)))
+
+==== Length of anticipation stimulus ====
+* Fixed, Variable (jittered at $TR*n$), how long?
+<<<../../imgs/BLUR.png,  height=.4\textheight>>> \\
+
+==== Timing/Length of Trial events ====
+
+# Cue and input
+# Anticipation
+# Outcome
+# "Fixation"
+# How long should each of these be?
+# Where should we include jitter?
+
+
+
 === Low Hanging Fruit ===
 ==== Instructions ====
-Tell participants
-* no pattern
-* win/loose independent of response
-* two blocks
+Do we tell participants:
+* No pattern
+* Can't choose same fruit twice in a row
+* Win/loose independent of response
+* Two blocks
 ==== Behavioral recordings ====
 For each trial, record
-* response
-* response time
-* reward
+* Response
+* Response time
+* Reward \\
+Is there anything else we should record?
 ==== Randomness ====
 * Trials
-** Win half, at most 3 losses in a row?
+** Win half, at most 4 losses in a row?
 * Runs (win/lose trial list)
-** fixed distribution for everyone?
-** pre-generated list
-** totally random
+** Fixed distribution:
+*** Varying by subject, OR
+*** Fixed by subject
+** Pre-generated list
+** Totally random
 ==== [$^{11}$C]raclopride and SM task ====
 * Martin-Soelch et al. used only $^1/_2$ of SM block
-* could start PET stuff earlier and do less of it?
+* Could start collecting PET earlier and collect less for SM condition?
 <<<../papers/Martin-SoelchPaper/SMvsRW.png,width=.8\textwidth>>> \\
 ==== [$^{11}$C]raclopride absorption ====
 === Harder Questions ===
@@ -80,33 +100,18 @@ For each trial, record
 [[[.3\textwidth]]]
 * Whole brain coverage
 ** <2->Multiband (TR=1, n.slices=60)
-** <2->need to talk to Tae, might not be possible
-** <2->resolution is $\approx 3mm^3$?
+** <2->Need to talk to Tae, might not be possible
+** <2->Resolution is $\approx 3mm^3$
 [[[.6\textwidth]]]
 * VTA only
-** <3->resolution is $\approx 1mm^3$?
+** <3->Resolution is $\approx 1mm^3$
 ** <3->Requires
-*** <3-> aquisition synced to cardiac cycles (pulse-ox, trigger w/in 70ms)
+*** <3-> Acquisition synced to cardiac cycles (pulse-ox, trigger w/in 70ms)
 *** <3-> Indeterminate acquistion time (no fixed TR)
-*** <3-> proton density imaging to find SN, to find VTA
-*** <3-> alternative alignment methods
-**  <3->discard motion $>1.5mm$ in any direction
+*** <3-> Proton density imaging to find SN, to find VTA
+*** <3-> Alternative alignment methods
+**  <3-> Discard motion $>1.5mm$ in any direction
 [columns]>
 
-==== Length of anticipation stimulus ====
-* Fixed, Variable (jittered at $TR*n$), how long?
-<<<../../imgs/BLUR.png,  height=.4\textheight>>> \\
-
-==== Timing/Length of Trial events ====
-<[columns]
-[[[.4\textwidth]]]
-# cue and input
-# prep
-# outcome
-# "fixation"
-[[[.6\textwidth]]]
-* jitter where
-
-[columns]>
 
 
