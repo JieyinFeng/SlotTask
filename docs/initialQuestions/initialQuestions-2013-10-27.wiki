@@ -31,9 +31,9 @@ usetheme={Amsterdam}
 <[columns]
 [[[0.4\textwidth]]]
 * <1-> wait indefinitely for button push?
-* <2-> long inter-stimulus intervals
-* <3-> 8 one-minute breaks for each block?
-* <4-> shown score
+* <2-> .5s + 1s + 1s + 1s of black screen
+* <3-> 8 one-minute breaks in each block?
+* <4-> shown score (WM)
 [[[0.4\textwidth]]]
 <<<../papers/Martin-SoelchPaper/task.png,width=\textwidth>>>  \\
 <<<../papers/Martin-SoelchPaper/scans.png,width=\textwidth>>> \\
@@ -45,13 +45,11 @@ usetheme={Amsterdam}
 ==== Our Task ====
 <<<../../imgs/EMPTY.png, height=.4\textheight>>>
 <<<../../imgs/CHOOSE.png,height=.4\textheight>>>
-<<<../../imgs/BLUR.png,  height=.4\textheight>>>
-\\
+<<<../../imgs/BLUR.png,  height=.4\textheight>>> \\
 <<<../../imgs/NOWIN.png,height=.4\textheight>>> or 
 <<<../../imgs/WIN.png,  height=.4\textheight>>> OR 
 <<<../../imgs/XXX.png,  height=.4\textheight>>> or
-<<<../../imgs/HASH.png, height=.4\textheight>>>
-\\ 
+<<<../../imgs/HASH.png, height=.4\textheight>>> \\ 
 \st{score is:}  % (((no competing WM signal)))
 === Low Hanging Fruit ===
 ==== Instructions ====
@@ -66,24 +64,49 @@ For each trial, record
 * reward
 ==== Randomness ====
 * Trials
-** Win half, at most 3 losses?
+** Win half, at most 3 losses in a row?
 * Runs (win/lose trial list)
 ** fixed distribution for everyone?
 ** pre-generated list
 ** totally random
 ==== [$^{11}$C]raclopride and SM task ====
 * Martin-Soelch et al. used only $^1/_2$ of SM block
+* could start PET stuff earlier and do less of it?
 <<<../papers/Martin-SoelchPaper/SMvsRW.png,width=.8\textwidth>>> \\
-
+==== [$^{11}$C]raclopride absorption ====
 === Harder Questions ===
 ==== Imaging and TR ====
+<[columns]
+[[[.3\textwidth]]]
 * Whole brain coverage
-** Multiband (TR=1, n.slices=60)
-** need to talk to Tae, might not be possible
-** resolution is $\approx 3mm^3$?
-* VTA only (TR=?)
-** TODO: READ VTA nature paper
-** resolution is $\approx 1mm^3$?
-** SNR is ??
+** <2->Multiband (TR=1, n.slices=60)
+** <2->need to talk to Tae, might not be possible
+** <2->resolution is $\approx 3mm^3$?
+[[[.6\textwidth]]]
+* VTA only
+** <3->resolution is $\approx 1mm^3$?
+** <3->Requires
+*** <3-> aquisition synced to cardiac cycles (pulse-ox, trigger w/in 70ms)
+*** <3-> Indeterminate acquistion time (no fixed TR)
+*** <3-> proton density imaging to find SN, to find VTA
+*** <3-> alternative alignment methods
+**  <3->discard motion $>1.5mm$ in any direction
+[columns]>
+
+==== Length of anticipation stimulus ====
+* Fixed, Variable (jittered at $TR*n$), how long?
+<<<../../imgs/BLUR.png,  height=.4\textheight>>> \\
+
+==== Timing/Length of Trial events ====
+<[columns]
+[[[.4\textwidth]]]
+# cue and input
+# prep
+# outcome
+# "fixation"
+[[[.6\textwidth]]]
+* jitter where
+
+[columns]>
 
 

@@ -1,3 +1,6 @@
+# FROM DAVID PAULSEN 2013-10-26
+# Optimize jittering for fMRI event related design
+
 #library(neuRosim)
 library(fmri)
 
