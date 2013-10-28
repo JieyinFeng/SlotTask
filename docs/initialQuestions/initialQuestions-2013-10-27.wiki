@@ -50,7 +50,7 @@ usetheme={Amsterdam}
 <<<../../imgs/WIN.png,  height=.4\textheight>>> OR 
 <<<../../imgs/XXX.png,  height=.4\textheight>>> or
 <<<../../imgs/HASH.png, height=.4\textheight>>> \\ 
-\st{score is:}  % (((no competing WM signal)))
+{Your score is:} (Do we want this?) % (((no competing WM signal)))
 === Low Hanging Fruit ===
 ==== Instructions ====
 Tell participants
