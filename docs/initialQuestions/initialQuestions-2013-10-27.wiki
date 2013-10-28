@@ -100,20 +100,24 @@ Is there anything else we should record?
 === Harder Questions ===
 ==== Imaging and TR ====
 <[columns]
-[[[.3\textwidth]]]
-* Whole brain coverage
-** <2->Multiband (TR=1, n.slices=60)
-** <2->Need to talk to Tae, might not be possible
-** <2->Resolution is $\approx 3mm^3$
+[[[.4\textwidth]]]
+Whole brain coverage
 [[[.6\textwidth]]]
-* VTA only
-** <3->Resolution is $\approx 1mm^3$
-** <3->Requires
-*** <3-> Acquisition synced to cardiac cycles (pulse-ox, trigger w/in 70ms)
-*** <3-> Indeterminate acquistion time (no fixed TR)
-*** <3-> Proton density imaging to find SN, to find VTA
-*** <3-> Alternative alignment methods
-**  <3-> Discard motion $>1.5mm$ in any direction
+VTA only
+[columns]>
+<[columns]
+[[[.4\textwidth]]]
+* <2->Multiband (TR=1, n.slices=60)
+* <2->Need to talk to Tae, might not be possible
+* <2->Resolution is $\approx 3mm^3$
+[[[.6\textwidth]]]
+* <3->Resolution is $\approx 1mm^3$
+* <3->Requires
+** <3-> Acquisition synced to cardiac cycles (pulse-ox, trigger w/in 70ms)
+** <3-> Indeterminate acquistion time (no fixed TR)
+** <3-> Proton density imaging to find SN, to find VTA
+** <3-> Alternative alignment methods
+*  <3-> Discard motion $>1.5mm$ in any direction
 [columns]>
 
 
