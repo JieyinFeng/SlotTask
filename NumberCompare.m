@@ -84,7 +84,7 @@ function NumberCompare(varargin)
      
     
      %% preload textures
-     % grab file (assumed to exist), read iamge, add alpha information
+     % grab file (assumed to exist), read image, add alpha information
      % save in slotimg struct
      % e.g. slotimg.CHOOSE='slotimgs/CHOOSE.png'
      imgdir='imgs/Scenes/';
@@ -171,7 +171,7 @@ function NumberCompare(varargin)
   
    
      
-     %% THE BIG LOOP -- block design wioth
+     %% THE BIG LOOP -- block design width
      for block = {'rew','nue','rew','nue'};
        while(GetSecs()-StartOfRunTime < runTimeSec);
            % show one of the images from scenes.(Indoor)(1) 
@@ -180,91 +180,119 @@ function NumberCompare(varargin)
            fixation();
            % flash a number for 
            showNumber();
-           showReward(block{1});
+           showReward();
        end
      end
+%      
+%         trialnum=i;
+%         %% debug, start time keeping
+%         % start of time debuging global var
+%         trailStartTime=GetSecs();
+%         % seconds into the experiement from start of for loop
+%         timing.start=trailStartTime-StartOfRunTime;
+%         
+%         %% choose a fruit, "spin", WIN/NOWIN, score
+%         showcue()
+%         
+%         
+%         
+%         [imgtype, trialscore] =scoreTrial(trialnum,score,blocktype);
+%         score=score+trialscore;
+%         %% SHOW SPIN
+%         Screen('DrawTexture', w,  slotimg.BLUR  ); 
+%         Screen('Flip', w);
+%         WaitSecs(.5);
+%         
+%         %% SHOW RESULTS (maybe play a sound)
+%         Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
+%         Screen('Flip', w);
+%         WaitSecs(1);
+%         
+%         %% SHOW score
+%         DrawFormattedText(w, ['your total score is ' num2str(score) '\n' ],'center','center',black);
+%         Screen('Flip', w);
+%         WaitSecs(1);
+%         
+%         %% TRIAL ENDED
+%         %TODO!! What should be recorded
+%         % wrap up: show/save info
+%         % trialnum\tstartime\tresponse\ trialscore total
+%         trialinfo = { blocktype trialnum trailStartTime rspnstime response trialscore score };
+%         order(i) = {trialinfo};
+%         
+%         
+%         % print header
+%         if i == 1
+%             fprintf(txtfid,'blocktype\ttrialnum\tstartime\tresponse\tresponsetime\ttrialscore\ttotal\n');
+%         end
+%         
+%         fprintf(txtfid,'%s\t',order{i}{1} );
+%         fprintf(txtfid,'%i\t',order{i}{2} );
+%         fprintf(txtfid,'%.03f\t',order{i}{3:4} );
+%         fprintf(txtfid,'%d\t',order{i}{5:6} );
+%         fprintf(txtfid,'%d',order{i}{7} );
+%         fprintf(txtfid, '\n');
+%         
+%         % save to mat so crash can be reloaded
+%         save(filename,'order','trialnum','subject','score');
+%        
+%         
+%         
+%         
+%         %% debug, show time of this trial
+%         if(opts.DEBUG)        
+%           timing.end= GetSecs() - trailStartTime;
+%           fprintf('%d: (%f,%f) %f\n',i, timing.start, timing.end,timing.end-timing.start);
+%         end
+% 
+%       i=i+1;
+%     
+% 
+%     % everyone should earn the bonus
+%     % but they should have at least 2000 pts
+%     earnedmsg='\n\nYou earned a $25 bonus !'; 
+%     if(score<2000); earnedmsg=''; end;
+% 
+% 
+%     msgAndCloseEverything(['Your final score is ', num2str(score) ,' points', earnedmsg, '\n\nThanks for playing!']);
+%     return
+
      
-        trialnum=i;
-        %% debug, start time keeping
-        % start of time debuging global var
-        trailStartTime=GetSecs();
-        % seconds into the experiement from start of for loop
-        timing.start=trailStartTime-StartOfRunTime;
-        
-        %% choose a fruit, "spin", WIN/NOWIN, score
-        showcue()
-        
-        
-        
-        [imgtype, trialscore] =scoreTrial(trialnum,score,blocktype);
-        score=score+trialscore;
-        %% SHOW SPIN
-        Screen('DrawTexture', w,  slotimg.BLUR  ); 
-        Screen('Flip', w);
-        WaitSecs(.5);
-        
-        %% SHOW RESULTS (maybe play a sound)
-        Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
-        Screen('Flip', w);
-        WaitSecs(1);
-        
-        %% SHOW score
-        DrawFormattedText(w, ['your total score is ' num2str(score) '\n' ],'center','center',black);
-        Screen('Flip', w);
-        WaitSecs(1);
-        
-        %% TRIAL ENDED
-        %TODO!! What should be recorded
-        % wrap up: show/save info
-        % trialnum\tstartime\tresponse\ trialscore total
-        trialinfo = { blocktype trialnum trailStartTime rspnstime response trialscore score };
-        order(i) = {trialinfo};
-        
-        
-        % print header
-        if i == 1
-            fprintf(txtfid,'blocktype\ttrialnum\tstartime\tresponse\tresponsetime\ttrialscore\ttotal\n');
-        end
-        
-        fprintf(txtfid,'%s\t',order{i}{1} );
-        fprintf(txtfid,'%i\t',order{i}{2} );
-        fprintf(txtfid,'%.03f\t',order{i}{3:4} );
-        fprintf(txtfid,'%d\t',order{i}{5:6} );
-        fprintf(txtfid,'%d',order{i}{7} );
-        fprintf(txtfid, '\n');
-        
-        % save to mat so crash can be reloaded
-        save(filename,'order','trialnum','subject','score');
-       
-        
-        
-        
-        %% debug, show time of this trial
-        if(opts.DEBUG)        
-          timing.end= GetSecs() - trailStartTime;
-          fprintf('%d: (%f,%f) %f\n',i, timing.start, timing.end,timing.end-timing.start);
-        end
-
-      i=i+1;
-     end 
-
-    % everyone should earn the bonus
-    % but they should have at least 2000 pts
-    earnedmsg='\n\nYou earned a $25 bonus !'; 
-    if(score<2000); earnedmsg=''; end;
-
-
-    msgAndCloseEverything(['Your final score is ', num2str(score) ,' points', earnedmsg, '\n\nThanks for playing!']);
-    return
-
   catch
-     Screen('CloseAll');
+      Screen('CloseAll');
      psychrethrow(psychlasterror);
+     
   end
   
   % close the screen
   sca
 
+    function showCue()
+       DrawFormattedText(w, ['whocue prototype'],'center','center',black);
+       %Screen('DrawTexture', w,  scenes.d{1}  ); 
+       Screen('Flip', w); 
+       WaitSecs(3.5);
+    end
+    function fixation()
+       DrawFormattedText(w, '+','center','center',black);
+       Screen('Flip', w); 
+       WaitSecs(1.8);
+    end
+
+    function showNumber()
+       randomNumber = randi(10); 
+       DrawFormattedText(w, int2str(randomNumber),'center','center',black);
+       Screen('Flip', w); 
+       WaitSecs(.1);
+    end
+
+   %function showReward()
+    % Screen('DrawTexture', w,  slotimg.BLUR  );
+       %Screen('Flip', w); 
+       %WaitSecs(1.5);
+    
+    
+   %end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                           support functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
