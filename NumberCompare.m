@@ -1,47 +1,25 @@
-% Slot Task:
-%  1. show "SELECT FRUIT" slot machine that has 4 choices
-%  2. take choice input from button box
-%     2.1 show warning if same choice is made twice, go back to 1 (500ms)
-%  4. Show "spin" slot machine for 500ms
-%  5. show results slot machine for 1000ms
-%  WIN BLOCK
-%    5.1 plays cha-ching and show "WIN" slot machine 1/4 of time
-%    5.2 no noise and "NO WIN" slot machine 3/4 of time
-%  NOREWARD
-%    5.1 play "click" and show "|||||" slot machine 1/4 of the time
-%    5.2 no noise and show "XXXXXX" slot machine 3/4 of the time
-% 6. show total score for 1 second (+1 for every win, always 0 for no NOREWARD) 
-%
-%
-%  Based on description in  
-%  "Lateralization and gender differences in the dopaminergic response 
-%                to unpredictable reward in the human ventral striatum"
-%
-%  Chantal Martin-Soelch, Joanna Szczepanik,
-%    Allison Nugent, Krystle Barhaghi, Denise Rallis, Peter Herscovitch,
-%    Richard E. Carson  and Wayne C. Drevets 
-%
-%			http://onlinelibrary.wiley.com/doi/10.1111/j.1460-9568.2011.07642.x/full
+% Numeric Compare Task
+%  0. 2 blocks: Reward --> "^" or "v" and Nuetral --> "???"
+%  1. Cue: indoor or outdoor (rewarded or nuetral) 3.5s
+%     1.5 "Prep:" 1.8s delay
+%  2. Number: 1..10, response based on > 5 (100ms)
+%  3. Receipt: "^" or "v" OR "??"
 %  usage:
 %    http://arnold/dokuwiki/doku.php?id=howto:experiments:slottask
 %
 % TODO/DONE
-%  [x] write task skeleton
-%  [x] insert pictures
-%     [ ] are alarm and money okay?
-%  [ ] establish scoring (how to do 1/4 breakdown)
+%  [ ] write task skeleton
+%  [ ] insert pictures
 %  [ ] fix instructions
-%  [ ] What information needs to be saved?
-%  [ ] buffers two sounds
-%  [ ] add warning to chooseFruit if participant takes too long
 %
-% 20131024 - WF
-%  - start coding, copy of CogEmoFaceReward  
-%  - have slot pictures
+% 20131030 - AP
+%  - dl imags, renamed code base
+% 20131030 - WF
+%  - setup new skeleton
 
 
 function NumberCompare(varargin)
-  %% SlotTask
+  %% Number Compare Task
   
   % defines opts structure     
   % sets screen resolution
@@ -109,12 +87,30 @@ function NumberCompare(varargin)
      % grab file (assumed to exist), read iamge, add alpha information
      % save in slotimg struct
      % e.g. slotimg.CHOOSE='slotimgs/CHOOSE.png'
-     for slotimgnames={'CHOOSE','BLUR','WIN','NOWIN','XXX','HASH'}
-        stimfilename=strcat('imgs/',slotimgnames{1},'.png');
-        [imdata, colormap, alpha]=imread(stimfilename);
-        imdata(:, :, 4) = alpha(:, :); 
-        slotimg.(slotimgnames{1}) = Screen('MakeTexture', w, imdata);
+     imgdir='imgs/Scenes/';
+     for d={'Indoors','Outdoors'};
+         files=dir([imgdir,d{1}]);
+         scenes.(d{1})=cell(1,length(files));
+         
+         for fidx=3:length(files)
+            f=files(fidx).name;
+            disp(f)
+            %if(strcmp(f(end),'.')); continue;end %only 2: . and ..
+            scenefile=strcat(imgdir,d{1},'/',f);
+           
+            
+            [imdata, colormap, alpha]=imread(scenefile);
+            % if alpha
+            if(any(size(alpha)))
+               imdata(:, :, 4) = alpha(:, :); 
+            end
+            
+             
+            scenes.(d{1}){fidx-2} = Screen('MakeTexture', w, imdata);
+         end
+          
      end
+     
 
 
      %% setup sound
@@ -175,9 +171,19 @@ function NumberCompare(varargin)
   
    
      
-     %% THE BIG LOOP -- block design do for about 24 minutes
-     %for i=start:length(experiment{facenumC})
-     while(GetSecs()-StartOfRunTime < runTimeSec)
+     %% THE BIG LOOP -- block design wioth
+     for block = {'rew','nue','rew','nue'};
+       while(GetSecs()-StartOfRunTime < runTimeSec);
+           % show one of the images from scenes.(Indoor)(1) 
+           showCue();
+           % just wait for 1800ms
+           fixation();
+           % flash a number for 
+           showNumber();
+           showReward(block{1});
+       end
+     end
+     
         trialnum=i;
         %% debug, start time keeping
         % start of time debuging global var
@@ -186,18 +192,8 @@ function NumberCompare(varargin)
         timing.start=trailStartTime-StartOfRunTime;
         
         %% choose a fruit, "spin", WIN/NOWIN, score
-
-        % get prevchoice so we can make sure we choose differently
-        if(trialnum>1), prevchoice=order{trialnum-1}{4};
-        else            prevchoice=0; end
+        showcue()
         
-        % get choice, must be different than previous
-        response=prevchoice;
-        numattempts=0;
-        while(response==prevchoice)  
-         [rspnstime, response] = chooseFruit(numattempts);
-         numattempts=numattempts+1;
-        end
         
         
         [imgtype, trialscore] =scoreTrial(trialnum,score,blocktype);
@@ -498,8 +494,8 @@ function seconds = waitForResponse(varargin)
 
         %% Initialize data storage and records
         % make directoires
-        for dir={'subjects','logs'}
-         if ~ exist(dir{1},'dir'); mkdir(dir{1}); end
+        for dirname={'subjects','logs'}
+         if ~ exist(dirname{1},'dir'); mkdir(dirname{1}); end
         end
         
         % log all output of matlab
