@@ -1,0 +1,62 @@
+
+
+PTB-INFO: This is Psychtoolbox-3 for Microsoft Windows, under Matlab (Version 3.0.10 - Build date: Sep 28 2012).
+PTB-INFO: Type 'PsychtoolboxVersion' for more detailed version information.
+PTB-INFO: Most parts of the Psychtoolbox distribution are licensed to you under terms of the MIT License, with
+PTB-INFO: some restrictions. See file 'License.txt' in the Psychtoolbox root folder for the exact licensing conditions.
+
+
+
+PTB-INFO: OpenGL-Renderer is ATI Technologies Inc. :: ATI Radeon HD 4200 :: 3.3.10372 Compatibility Profile Context
+PTB-INFO: VBL startline = 1024 , VBL Endline = 1064
+PTB-INFO: Measured monitor refresh interval from beamposition = 16.657369 ms [60.033492 Hz].
+PTB-INFO: Will use beamposition query for accurate Flip time stamping.
+PTB-INFO: Measured monitor refresh interval from VBLsync = 16.643163 ms [60.084732 Hz]. (50 valid samples taken, stddev=0.380472 ms.)
+PTB-INFO: Reported monitor refresh interval from operating system = 16.666667 ms [60.000000 Hz].
+PTB-INFO: Small deviations between reported values are normal and no reason to worry.
+PTB-WARNING: ============================================================================================================================
+PTB-WARNING: WINDOWS DWM AERO DESKTOP COMPOSITOR IS ACTIVE! ALL FLIP STIMULUS ONSET TIMESTAMPS WILL BE GROSSLY INACCURATE AND UNRELIABLE!
+PTB-WARNING: DO NOT USE THIS MODE FOR RUNNING EXPERIMENT SESSIONS WITH ANY REQUIREMENTS FOR ACCURATE TIMING!
+PTB-WARNING: ============================================================================================================================
+PTB-INFO: Support for fast OffscreenWindows enabled.
+hd-wallpaper-1397x960px-Living-room-interior-designs-7-living-room-interior-designs-images.jpg
+images.jpg
+living-room-interior-design.jpg
+goc.jpg
+outdoors.jpg
+outdoors6.jpg
+the-great-outdoors.jpg
+
+ans =
+
+   4.3693e+05
+
+{Operation terminated by user during <a href="matlab:helpUtils.errorDocCallback('NumberCompare/fixation', 'C:\Users\ajp\Documents\GitHub\SlotTask\NumberCompare.m', 289)" style="font-weight:bold">NumberCompare/fixation</a> (<a href="matlab: opentoline('C:\Users\ajp\Documents\GitHub\SlotTask\NumberCompare.m',289,0)">line 289</a>)
+
+In <a href="matlab:helpUtils.errorDocCallback('NumberCompare', 'C:\Users\ajp\Documents\GitHub\SlotTask\NumberCompare.m', 181)" style="font-weight:bold">NumberCompare</a> (<a href="matlab: opentoline('C:\Users\ajp\Documents\GitHub\SlotTask\NumberCompare.m',181,0)">line 181</a>)
+           fixation();
+} 
+sca
+
+
+INFO: PTB's Screen('Flip', 10) command seems to have missed the requested stimulus presentation deadline
+INFO: a total of 17 times out of a total of 24 flips during this session.
+
+INFO: This number is fairly accurate (and indicative of real timing problems in your own code or your system)
+INFO: if you provided requested stimulus onset times with the 'when' argument of Screen('Flip', window [, when]);
+INFO: If you called Screen('Flip', window); without the 'when' argument, this count is more of a ''mild'' indicator
+INFO: of timing behaviour than a hard reliable measurement. Large numbers may indicate problems and should at least
+INFO: deserve your closer attention. Cfe. 'help SyncTrouble', the FAQ section at www.psychtoolbox.org and the
+INFO: examples in the PDF presentation in PsychDocumentation/Psychtoolbox3-Slides.pdf for more info and timing tips.
+
+NumberCompare('DEBUG')
+     DEBUG: 1
+     sound: 1
+    screen: [800 600]
+
+Enter the subject ID number: 1
+subjects/1_tc.txt exists, but .mat does not!
+Enter subject's gender: 1
+Enter subject's age: 1
+Enter subject's run_num: 1
+Subject is male

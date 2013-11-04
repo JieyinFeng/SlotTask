@@ -1,0 +1,79 @@
+
+
+PTB-INFO: This is Psychtoolbox-3 for Microsoft Windows, under Matlab (Version 3.0.10 - Build date: Sep 28 2012).
+PTB-INFO: Type 'PsychtoolboxVersion' for more detailed version information.
+PTB-INFO: Most parts of the Psychtoolbox distribution are licensed to you under terms of the MIT License, with
+PTB-INFO: some restrictions. See file 'License.txt' in the Psychtoolbox root folder for the exact licensing conditions.
+
+
+
+PTB-INFO: OpenGL-Renderer is ATI Technologies Inc. :: ATI Radeon HD 4200 :: 3.3.10372 Compatibility Profile Context
+PTB-INFO: VBL startline = 1024 , VBL Endline = 1064
+PTB-INFO: Measured monitor refresh interval from beamposition = 16.657404 ms [60.033366 Hz].
+PTB-INFO: Will use beamposition query for accurate Flip time stamping.
+PTB-INFO: Measured monitor refresh interval from VBLsync = 16.660033 ms [60.023891 Hz]. (50 valid samples taken, stddev=0.063297 ms.)
+PTB-INFO: Reported monitor refresh interval from operating system = 16.666667 ms [60.000000 Hz].
+PTB-INFO: Small deviations between reported values are normal and no reason to worry.
+PTB-WARNING: ============================================================================================================================
+PTB-WARNING: WINDOWS DWM AERO DESKTOP COMPOSITOR IS ACTIVE! ALL FLIP STIMULUS ONSET TIMESTAMPS WILL BE GROSSLY INACCURATE AND UNRELIABLE!
+PTB-WARNING: DO NOT USE THIS MODE FOR RUNNING EXPERIMENT SESSIONS WITH ANY REQUIREMENTS FOR ACCURATE TIMING!
+PTB-WARNING: ============================================================================================================================
+PTB-INFO: Support for fast OffscreenWindows enabled.
+hd-wallpaper-1397x960px-Living-room-interior-designs-7-living-room-interior-designs-images.jpg
+images.jpg
+living-room-interior-design.jpg
+goc.jpg
+outdoors.jpg
+outdoors6.jpg
+the-great-outdoors.jpg
+
+ans =
+
+   4.3234e+05
+
+{Undefined function or variable 'showReward'.
+
+Error in <a href="matlab:helpUtils.errorDocCallback('NumberCompare', 'C:\Users\ajp\Documents\GitHub\SlotTask\NumberCompare.m', 183)" style="font-weight:bold">NumberCompare</a> (<a href="matlab: opentoline('C:\Users\ajp\Documents\GitHub\SlotTask\NumberCompare.m',183,0)">line 183</a>)
+           showReward();
+} 
+1
+
+ans =
+
+     1
+
+1
+
+ans =
+
+     1
+
+1
+
+ans =
+
+     1
+
+1
+
+ans =
+
+     1
+
+1
+
+ans =
+
+     1
+
+NumberCompare('DEBUG')
+     DEBUG: 1
+     sound: 1
+    screen: [800 600]
+
+Enter the subject ID number: 1
+subjects/1_tc.txt exists, but .mat does not!
+Enter subject's gender: 1
+Enter subject's age: 1
+Enter subject's run_num: 1
+Subject is male

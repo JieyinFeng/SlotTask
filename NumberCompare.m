@@ -131,11 +131,11 @@ function NumberCompare(varargin)
 
      %% Instructions     
      Instructions = { ...
-        [ 'You will be bored\n' ...
-          'Nothing is as bad as this task\n'...
+        [ 'You will be bored\n\n' ...
+          'Nothing is as bad as this task...\n'...
         ], ...
-        [ 'Are you ready?\n' ...
-          'Well too bad\n'  ] ...
+        [ 'Are you ready?\n\n' ...
+          'Well, too bad\n'  ] ...
       }; 
      InstructionsBetween = 'Choose a fruit';
    
@@ -172,15 +172,19 @@ function NumberCompare(varargin)
    
      
      %% THE BIG LOOP -- block design width
-     for block = {'rew','nue','rew','nue'};
-       while(GetSecs()-StartOfRunTime < runTimeSec);
-           % show one of the images from scenes.(Indoor)(1) 
-           showCue();
+     for block = {'rew','neu','rew','neu'};
+       trialRuns=datasample(1:180,180); 
+       for i=1:180;  
+           % show one of the images from scenes
+           showCue(trialRuns(i));
            % just wait for 1800ms
            fixation();
            % flash a number for 
            showNumber();
-           showReward();
+           %delay jittered b/w
+           delayJitter();
+           %show reward
+           showReward(trialRuns(i));
        end
      end
 %      
@@ -267,18 +271,28 @@ function NumberCompare(varargin)
   % close the screen
   sca
 
-    function showCue()
-       DrawFormattedText(w, ['whocue prototype'],'center','center',black);
-       %Screen('DrawTexture', w,  scenes.d{1}  ); 
+    function showCue(rewardNumber)
+       if(rewardNumber < 136)
+       Screen('DrawTexture', w,  scenes.Outdoors{1}  );
+       %DrawFormattedText(w, int2str(rewardNumber),'center','center',black);
+       else
+       Screen('DrawTexture', w,  scenes.Indoors{1}  ); 
+       %DrawFormattedText(w, int2str(rewardNumber),'center','center',black);
+       end
        Screen('Flip', w); 
        WaitSecs(3.5);
     end
+
     function fixation()
        DrawFormattedText(w, '+','center','center',black);
        Screen('Flip', w); 
        WaitSecs(1.8);
     end
-
+    
+    function delayJitter()
+        WaitSecs(1);
+    end
+    
     function showNumber()
        randomNumber = randi(10); 
        DrawFormattedText(w, int2str(randomNumber),'center','center',black);
@@ -286,13 +300,23 @@ function NumberCompare(varargin)
        WaitSecs(.1);
     end
 
-   %function showReward()
-    % Screen('DrawTexture', w,  slotimg.BLUR  );
-       %Screen('Flip', w); 
-       %WaitSecs(1.5);
+    
+   function showReward(rewardNumber)
+       
+        if(rewardNumber < 136)
+        Screen('DrawTexture', w,  scenes.Indoors{2}  ); 
+        %DrawFormattedText(w, '?','center','center',black);
+        %DrawFormattedText(w, int2str(rewardNumber),'center','center',black);
+        else
+        DrawFormattedText(w, '?','center','center',black);
+        %DrawFormattedText(w, int2str(rewardNumber),'center','center',black);
+        end
+      %Screen('DrawTexture', w,  slotimg.BLUR  );
+     Screen('Flip', w);
+     WaitSecs(1.5);
     
     
-   %end
+   end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                           support functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
