@@ -17,7 +17,6 @@
 \usepackage{animate}
 \usepackage{comment}
 \usetheme{Ilmenau}
-\usecolortheme{Emily}
 \beamertemplatenavigationsymbolsempty
 
 \title{Delayed Monetary Incentive Reward Task}
@@ -53,6 +52,7 @@
 	\end{itemize}
 \end{frame}
 
+\begin{section}{review of task}
 \begin{frame}
 \frametitle{Reward Condition}
 \begin{center}
@@ -125,6 +125,133 @@
 		\item Jitter in between cue and number comparison?
 	\end{itemize}
 \end{frame}
+\end{section}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% NOW for a simulation of the task%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{section}{task presentation: reward block}
+\begin{subsection}{reward block - reward correct}
+%%%% INDOOR=reward correct
+\begin{frame} \frametitle{REWARD (correct)} here indoor is the reward cue \end{frame}
+\begin{frame} \frametitle{CUE for 3.5s}
+   \begin{center}
+	\includegraphics[width=.5\textwidth]{../imgs/Scenes/Indoors/living-room-interior-design.jpg} \\
+   \end{center}
+\end{frame}
 
+\begin{frame} \frametitle{1.8s wait} \end{frame}
+\begin{frame} \frametitle{Number for 0.1s} \center{\huge{2}} \end{frame}
+\begin{frame} \frametitle{variable response window (80\% correct)} \tiny{you respond correctly and in time} \end{frame}
+\begin{frame} \frametitle{wait for 1 to 6 secs} \end{frame}
+\begin{frame} 
+ \frametitle{see reward/loss for 1.5s}
+   \begin{center}
+	  %\includegraphics[width=.5\textwidth]{../imgs/Scenes/Indoors/he.jpg} \\
+     \center{\textcolor{green}{\huge{$\uparrow$}}}
+   \end{center}
+\end{frame}
+\end{subsection}
+%%%% END reward correct
+
+
+%%%% INDOOR=reward incorrect
+\begin{subsection}{reward block - reward incorrect}
+\begin{frame} \frametitle{REWARD (incorrect)} here indoor is the reward cue \end{frame}
+\begin{frame} \frametitle{CUE for 3.5s}
+   \begin{center}
+	\includegraphics[width=.5\textwidth]{../imgs/Scenes/Indoors/living-room-interior-design.jpg} \\
+   \end{center}
+\end{frame}
+
+\begin{frame} \frametitle{1.8s wait} \end{frame}
+\begin{frame} \frametitle{Number for 0.1s} \center{\huge{4}} \end{frame}
+\begin{frame} \frametitle{variable response window (80\% correct)} \tiny{you respond incorrectly or not in time} \end{frame}
+\begin{frame} \frametitle{wait for 1 to 6 secs} \end{frame}
+\begin{frame} 
+ \frametitle{see reward/loss for 1.5s}
+   \begin{center}
+     \center{\textcolor{red}{\huge{$\downarrow$}}}
+   \end{center}
+\end{frame}
+\end{subsection}
+%%%% END reward loss
+
+
+
+%%%% OUTDOOR=neutral incorrect
+\begin{subsection}{reward block - neutral}
+\begin{frame} \frametitle{NEUTRAL} here outdoor is the neutral/unrewarded cue \end{frame}
+\begin{frame} \frametitle{CUE for 3.5s}
+   \begin{center}
+	\includegraphics[width=.5\textwidth]{../imgs/Scenes/Outdoors/the-great-outdoors.jpg} \\
+   \end{center}
+\end{frame}
+
+\begin{frame} \frametitle{1.8s wait} \end{frame}
+\begin{frame} \frametitle{Number for 0.1s} \center{\huge{6}} \end{frame}
+\begin{frame} \frametitle{wait for 1 to 6 secs} \tiny{response doesn't matter}\end{frame}
+\begin{frame} 
+ \frametitle{see reward/loss for 1.5s}
+   \begin{center}
+     \center{\huge{?}}
+   \end{center}
+\end{frame}
+%%%% END neutral loss
+
+\end{subsection}
+\end{section}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%% NEUTRAL BLOCK
+\begin{section}{task presentation: neutral block}
+\begin{subsection}{neutral block - reward correct}
+%%%% INDOOR=reward correct
+\begin{frame} \frametitle{REWARD (correct)} here indoor is the reward cue \end{frame}
+\begin{frame} \frametitle{CUE for 3.5s}
+   \begin{center}
+	\includegraphics[width=.5\textwidth]{../imgs/Scenes/Indoors/living-room-interior-design.jpg} \\
+   \end{center}
+\end{frame}
+
+\begin{frame} \frametitle{1.8s wait} \end{frame}
+\begin{frame} \frametitle{Number for 0.1s} \center{\huge{2}} \end{frame}
+\begin{frame} \frametitle{wait for 1 to 6 secs} \end{frame}
+\begin{frame} 
+ \frametitle{see reward/loss for 1.5s}
+   \begin{center}
+	  %\includegraphics[width=.5\textwidth]{../imgs/Scenes/Indoors/he.jpg} \\
+     \center{\huge{?}}
+   \end{center}
+\end{frame}
+\end{subsection}
+%%%% END reward correct
+
+
+
+%%%% OUTDOOR=neutral incorrect
+\begin{subsection}{neutral block - neutral}
+\begin{frame} \frametitle{NEUTRAL} here outdoor is the neutral/unrewarded cue \end{frame}
+\begin{frame} \frametitle{CUE for 3.5s}
+   \begin{center}
+	\includegraphics[width=.5\textwidth]{../imgs/Scenes/Outdoors/the-great-outdoors.jpg} \\
+   \end{center}
+\end{frame}
+
+\begin{frame} \frametitle{1.8s wait} \end{frame}
+\begin{frame} \frametitle{Number for 0.1s} \center{\huge{8}} \end{frame}
+\begin{frame} \frametitle{wait for 1 to 6 secs} \tiny{response doesn't matter}\end{frame}
+\begin{frame} 
+ \frametitle{see reward/loss for 1.5s}
+   \begin{center}
+     \center{\huge{?}}
+   \end{center}
+\end{frame}
+%%%% END neutral loss
+
+\end{subsection}
+\end{section}
 
 \end{document}

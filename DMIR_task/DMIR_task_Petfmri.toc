@@ -1,2 +1,10 @@
-\beamer@endinputifotherversion {3.20pt}
+\beamer@endinputifotherversion {3.27pt}
 \select@language {english}
+\beamer@sectionintoc {1}{review of task}{3}{0}{1}
+\beamer@sectionintoc {2}{task presentation: reward block}{9}{0}{2}
+\beamer@subsectionintoc {2}{1}{reward block - reward correct}{9}{0}{2}
+\beamer@subsectionintoc {2}{2}{reward block - reward incorrect}{16}{0}{2}
+\beamer@subsectionintoc {2}{3}{reward block - neutral}{23}{0}{2}
+\beamer@sectionintoc {3}{task presentation: neutral block}{29}{0}{3}
+\beamer@subsectionintoc {3}{1}{neutral block - reward correct}{29}{0}{3}
+\beamer@subsectionintoc {3}{2}{neutral block - neutral}{35}{0}{3}
