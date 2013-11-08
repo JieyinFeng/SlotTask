@@ -1,7 +1,7 @@
 % Monitary Incentive Delay
 
 
-function MID(varargin)
+function [subject, time] = MID(varargin)
   format long; %for debuging
   opts.DEBUG=1;
   opts.screen=[800 600];
@@ -78,13 +78,10 @@ function MID(varargin)
      
 
     
-     %% wait for scanner start
-     DrawFormattedText(w, ['Get Ready (waiting for scanner "^")\n'],'center','center',black);
-     Screen('Flip', w);
-     waitForResponse('6^');
+
+     %% how to increase/decrease response time window to fix accuracy at 80%
+     rxtdelta=.1;
      
-     %% define paradigm
-     blocks = [ 1 0 1 0 ];
      
      %% define subject
      subject.id=101;
@@ -93,19 +90,52 @@ function MID(varargin)
      subject.totalcorrect=0;
      subject.totaltrials=0;
      subject.totalrus=0;
-     subject.allowedrxt=.1;
+     subject.allowedrxt=.5;
      subject.lastcorrect=0;
      subject.start=1;
      
      
+
+     %% define paradigm
+     % 4 blocks alternating nue punish
+     %blocks = xor(mod(subject.id, 2), [ 1 0 1 0 ]);
+     blocks = [ 0 1 0 1 ];
      
    
      %% experiment design
      % TODO: read from file
      % parse from 4d matrix given subject info
-     design=ones(180,5);
+     % read matrix of all timings
+     % TODO: 4d matrix, , mod subjnum to get position
+     %  -- blocktype derived from block number and subject ID
+     %  -- trial number fixed by row position
+     %  1. cuetype -- 0 is nuetral, 1 is reward
+     %  2. ISI_cueNum
+     %  3. ISI_numRew
+     %  4. shownumber (1-4,6-9)
+     %  5. ITI
+     cueTime=3.5; numTime=.1;receiptTime=1.5;
+     cueIDX=1; ISI_cueNumIDX=2; ISI_numRewIDX=3; shownumIDX=4; ITIIDX=5;
+     cueRew=1; cueNue=0;
+     
+     design=ones(7,5);
+
+     % set neut/reward trials
+     design(:,cueIDX) = randi(4,length(design),1)>3
+
+     % distribute 
+
+     % random ones and zeros
+     design(:,shownumIDX)=randi(10,length(design),1);
+     design(:,find(design(:,shownumIDX)==5))=4;
+
+     % expected times column
+     totalTrialIDX=size(design,2)+1;
+     design(:,totalTrialIDX)=cumsum(sum(design(:,[ISI_cueNumIDX ISI_numRewIDX ITIIDX]),2)+cueTime+numTime+receiptTime);
+
+     
      % sort of allocate time
-     times(size(design,1)).start.actual=0;
+     times(size(design,1)).trialstart.actual=0;
      
      
       %% Instructions     
@@ -140,48 +170,60 @@ function MID(varargin)
      
      %% THE BIG LOOP -- block design width
      %
-     % read matrix of all timings
-     % TODO: 4d matrix, , mod subjnum to get position
-     %  -- blocktype derived from block number and subject ID
-     %  -- trial number fixed by row position
-     %  1. cuetype -- 0 is nuetral, 1 is reward
-     %  2. ISI_cueNum
-     %  3. ISI_numRew
-     %  4. shownumber (1-4,6-9)
-     %  5. ITI
-     cueIDX=1; ISI_cueNumIDX=2; ISI_numRewIDX=3; shownumIDX=4; ITIIDX=5;
-     cueRew=1; cueNue=0;
      
-     StartOfParadigm= GetSecs();
+     %% wait for scanner start
+     DrawFormattedText(w, ['Get Ready (waiting for scanner "^")\n'],'center','center',black);
+     Screen('Flip', w);
+     StartOfParadigm= waitForResponse('6^');
+     subject.scannersynctime = StartOfParadigm;
+
      for blocknum=1:length(blocks);
          
          blocktype=blocks(blocknum);
+         %% allocate block
          subject.block(blocknum).rtxs=ones(size(design,1),1)*-1;
          subject.block(blocknum).corrects=ones(size(design,1),1)*-1;
+         subject.block(blocknum).cues=ones(size(design,1),1)*-1;
+         subject.block(blocknum).starttimes=ones(size(design,1),1)*-1;
 
          
          StartOfRunTime = GetSecs();
+         subject.block(blocknum).starttime = StartOfRunTime;
+         subject.block(blocknum).blocktype = blocktype;
          
+         time(1).trialstart.expect = StartOfRunTime; 
          
+         length(design)
          for trialnum = subject.start:length(design)
+               %% TIMING
                % reset time of trial
                trialRunningTime=GetSecs();
+               % and record actual start time
                trialStartTime=trialRunningTime;
 
-               time(trialnum).start.actual=trialRunningTime; % set start of trial
+               % lock trials to expected timing
+               % expect time set by previous trial ending
+               time(trialnum).trialstart.actual = trialStartTime; % set start of trial
+               time(trialnum).trialstart.duration = 0; % set start of trial
 
+               %% HIT RATE
                % want to match at 80% hit rate
                % adjust hit rate
                if(subject.lastcorrect==1 && subject.totalcorrect/subject.totaltrials > .8)
-                       subject.allowedrxt=subject.allowedrxt-.01;
-               elseif(subject.lastcorrect~=1 && subject.totalcorrect/subject.totaltrials < .8 && subject.totalcorrect< 1 )
-                       subject.allowedrxt=subject.allowedrxt+.01;
+                       subject.allowedrxt=subject.allowedrxt-rxtdelta;
+                %       fprintf('rxt decremented to %f\n', subject.allowedrxt)
+               elseif(subject.lastcorrect~=1 && subject.totalcorrect/subject.totaltrials < .8 && subject.allowedrxt< 1 )
+                       subject.allowedrxt=subject.allowedrxt+rxtdelta;
+                %       fprintf('rxt decremented to %f\n', subject.allowedrxt)
+               else
+                %fprintf('not touching allowedrxt(%f)\ncorrecttotal: %d, total: %d, lastcorrect: %d',...
+                %        subject.allowedrxt,subject.totalcorrect,subject.totaltrials,subject.lastcorrect)
                end
 
                % reward or neutral, number to show
                cuetype=design(trialnum,cueIDX);
                number=design(trialnum,shownumIDX);
-               if(number>5)
+               if(number<5)
                    correctCode=KbName('1!');
                else
                    correctCode=KbName('2@');
@@ -189,59 +231,76 @@ function MID(varargin)
                
                %% stimulus
                % show one of the images from scene
-               duration=3.5;   
-               time(trialnum).cue.expect = increaseTime(duration);
-               time(trialnum).cue.actual = showCue(cuetype,time(trialnum).cue.expect);
+               % duration is fixed at 3.5 -- but we want to compensate for any lost time
+               time(trialnum).cue.duration=cueTime - (time(trialnum).trialstart.actual - time(trialnum).trialstart.expect ) ;   
+               time(trialnum).cue.expect  = increaseTime(time(trialnum).cue.duration);
+               time(trialnum).cue.actual  = showCue(cuetype,time(trialnum).cue.expect);
 
                % jittered wait
-               duration=design(trialnum,ISI_cueNumIDX);
-               time(trialnum).ISIcueNum.expect = increaseTime(duration);
-               time(trialnum).ISIcueNum.actual = fixation(time(trialnum).cue.expect);
+               time(trialnum).ISIcueNum.duration=design(trialnum,ISI_cueNumIDX);
+               time(trialnum).ISIcueNum.expect  = increaseTime(time(trialnum).ISIcueNum.duration);
+               time(trialnum).ISIcueNum.actual  = fixation(time(trialnum).ISIcueNum.expect);
 
                % flash a number
-               duration=.1;
-               time(trialnum).num.expect = increaseTime(duration);
-               time(trialnum).num.actual = showNumber(number,duration);
+               time(trialnum).num.duration=numTime;
+               time(trialnum).num.expect  = increaseTime(time(trialnum).num.duration);
+               time(trialnum).num.actual  = showNumber(number,time(trialnum).num.duration);
 
                % get input
                duration=subject.allowedrxt;
-               [correct, rxt ]=getinput(duration,correctCode)
-               rxt=time(trialnum).start.actual-rxt
+               [correct, rxt ]=getinput(duration,correctCode);
+               rxttime=time(trialnum).num.actual+rxt;
 
                %delay between input and reward
-               duration=design(trialnum,ISI_numRewIDX)-rxt
-               time(trialnum).ISInumRew.expect = increaseTime(duration);
-               time(trialnum).ISInumRew.actual = fixation(time(trialnum).ISInumRew.expect);
+               time(trialnum).ISInumRew.duration=design(trialnum,ISI_numRewIDX)-rxt;
+               time(trialnum).ISInumRew.expect  = increaseTime(time(trialnum).ISInumRew.duration);
+               time(trialnum).ISInumRew.actual  = fixation(time(trialnum).ISInumRew.expect);
 
 
                %show reward
-               duration=1.5;
-               time(trialnum).receipt.expect = increaseTime(duration);
-               time(trialnum).receipt.actual = showReward(blocktype,cuetype,correct,time(trialnum).receipt.expect);
+               time(trialnum).receipt.duration=receiptTime;
+               time(trialnum).receipt.expect  = increaseTime(time(trialnum).receipt.duration);
+               time(trialnum).receipt.actual  = showReward(blocktype,cuetype,correct,time(trialnum).receipt.expect);
 
 
                %% wrap up
-               subject.block(blocknum).scores(trialnum) = correct;
-               subject.block(blocknum).rxts(trialnum)   = rxt;
+               % update block info
+               subject.block(blocknum).starttimes(trialnum) = trialStartTime;
+               subject.block(blocknum).scores(trialnum)     = correct;
+               subject.block(blocknum).rxts(trialnum)       = rxt;
+               subject.block(blocknum).cues(trialnum)       = cuetype;
+
+               % update subject
+               subject.totaltrials = subject.totaltrials+1;
+               subject.lastcorrect = correct;
+
+               %subject.totalcorrect=length(find(subject.block(blocknum).scores==1));
+               if(correct==1); subject.totalcorrect=subject.totalcorrect+1; end
                
-               fprintf('\t\t%i RXT %d %.1f (next rsp time: %.3f)\n',trialnum,correct,rxt,subject.allowedrxt);
-               fprintf('# timepoint\tdiff\tactl expctd\n')
-               for tpnts={'cue','ISIcueNum','num','ISInumRew','receipt'}
+               fprintf('===%i RXT %d %.1f (rsp time: %.3f)====\n',trialnum,correct,rxt,subject.allowedrxt);
+               fprintf('# timepoint\tdiff\tactl expctd\tintnd dur\n')
+               for tpnts={'trialstart','cue','ISIcueNum','num','ISInumRew','receipt'}
                   tpnts=tpnts{1};
-                  fprintf('%i %9s\t%.2f\t%.1f %.1f\n',trialnum,tpnts, ...
+                  fprintf('%i %9s\t%.2f\t%.0f %.0f\t%f\n',trialnum,tpnts, ...
                     time(trialnum).(tpnts).actual-time(trialnum).(tpnts).expect, ...
-                    time(trialnum).(tpnts).actual-trialStartTime, ...
-                    time(trialnum).(tpnts).expect-trialStartTime );
+                    (time(trialnum).(tpnts).actual-trialStartTime)*1000, ...
+                    (time(trialnum).(tpnts).expect-trialStartTime)*1000, ...
+                    time(trialnum).(tpnts).duration);
                end
                
                % TRIAL HAS FINISHED
                % ITI before next trial
                % increase trialTime
-               increaseTime(   design(trialnum,ITIIDX) );
+               %increaseTime(   design(trialnum,ITIIDX) );
+               time(trialnum).trialend.duration = design(trialnum,totalTrialIDX);
+               time(trialnum).trialend.expect   = design(trialnum,totalTrialIDX) + StartOfRunTime;
+               % also expect the next trial to start when this one ended
                if(trialnum<length(design) )
-                    time(trialnum+1).start.expect = trialRunningTime;
+                    time(trialnum+1).trialstart.expect = time(trialnum).trialend.expect;
                end
-               fixation(trialRunningTime);
+
+               %fixation(trialRunningTime);
+               time(trialnum).trialend.actual=fixation( time(trialnum).trialend.expect );
          end 
          %% END BLOCK
          % TODO: save subject
@@ -251,6 +310,8 @@ function MID(varargin)
              Screen('Flip', w);
              waitForResponse('SPACE');
          end
+
+
      end
  catch
      %try, Screen('CloseAll'); end
@@ -303,13 +364,19 @@ function MID(varargin)
     %% get and judge input
     function [correct, endtime] = getinput(duration,correctCode)
         correct=-1;
-        waitStartTime=GetSecs();
+        % draw response block
+        %bottombox=[0 opts.screen(2) opts.screen(1)-10 opts.screen(1)]
+        bottombox=[0 opts.screen(2)-10 opts.screen(1) opts.screen(2)];
+        Screen('FillRect', w, [ 40 40 200 ], bottombox);
+        %waitStartTime=Screen('Flip',w,0,1); % dont clear
+        waitStartTime=Screen('Flip',w); % dont clear
+        %waitStartTime=GetSecs();
         while(GetSecs()-waitStartTime<duration)
           [ keyIsDown, endtime, keyCode ] = KbCheck;
           
           if(keyCode(escKey));
               msgAndCloseEverything(['Quit on trial ' num2str(trialnum)]);
-              error('quit early (on %d)\n',trailnum)
+              error('quit early (on %d)\n',trialnum)
            end
           
           if(any(keyCode(acceptableKeyPresses))); 
@@ -323,6 +390,7 @@ function MID(varargin)
           end 
 
           WaitSecs(.001);
+          
         end
         endtime=GetSecs()-waitStartTime;
     end
@@ -331,19 +399,19 @@ function MID(varargin)
    % showReward(blocktype,cuetype,correct,time(trialnum).receipt.expect);
    function endtime = showReward(blocktype,cuetype,correct,endtime)
         % regardless of block, increase counts
-        if(correct==1)
-            subject.totalcorrect=subject.totalcorrect+1;
-            subject.lastcorrect=0;
-            subject.totalcount=0;
-        end
+        %if(correct==1)
+        %    subject.totalcorrect=subject.totalcorrect+1;
+        %    subject.lastcorrect=0;
+        %    subject.totalcount=0;
+        %end
        
         if(blocktype==1 && cuetype==1) %reward block, reward trial
             % give a score
             if(correct==1)
-               %DrawFormattedText(w, '▲','center','center',[ 255 0 0]);
-               DrawFormattedText(w, 'V','center','center',[ 255 0 0]);
-            else
                DrawFormattedText(w, '^','center','center',[ 0 255 0]);
+               %DrawFormattedText(w, '▲','center','center',[ 255 0 0]);
+            else
+               DrawFormattedText(w, 'V','center','center',[ 255 0 0]);
                %DrawFormattedText(w, '▼','center','center',[ 0 255 0]);
             end
             
@@ -491,7 +559,7 @@ function seconds = waitForResponse(varargin)
 %                 % no where we expect, maybe psychtoolbox crashed
 %                 % prompt if we want to restart
 %                 else
-%                     fprintf('not auto resuming b/c run=%d and trail=%d\n\n',...
+%                     fprintf('not auto resuming b/c run=%d and trial=%d\n\n',...
 %                         localVar.subject.run_num,localVar.trialnum)
                      resume = lower(input('Want to load previous session (y or n)? ','s'));
 %                 end
