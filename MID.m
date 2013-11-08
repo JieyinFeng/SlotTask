@@ -53,7 +53,7 @@ function [subject, time] = MID(varargin)
      % save in slotimg struct
      % e.g. slotimg.CHOOSE='slotimgs/CHOOSE.png'
      imgdir='imgs/Scenes/';
-     for d={'Indoors','Outdoors'};
+     for d={'indoor','outdoor'};
          files=dir([imgdir,d{1}]);
          scenes.(d{1})=cell(1,length(files));
          
@@ -100,6 +100,14 @@ function [subject, time] = MID(varargin)
      % 4 blocks alternating nue punish
      %blocks = xor(mod(subject.id, 2), [ 1 0 1 0 ]);
      blocks = [ 0 1 0 1 ];
+
+     if(mod(subject.id,2)==0)
+        rewardScene ='indoor';
+        neutralScene='outdoor';
+     else
+        neutralScene ='indoor';
+        rewardScene  ='outdoor';
+     end
      
    
      %% experiment design
@@ -109,21 +117,31 @@ function [subject, time] = MID(varargin)
      % TODO: 4d matrix, , mod subjnum to get position
      %  -- blocktype derived from block number and subject ID
      %  -- trial number fixed by row position
-     %  1. cuetype -- 0 is nuetral, 1 is reward
+     %  1. cuetype -- 0 is neutral, 1 is reward
      %  2. ISI_cueNum
      %  3. ISI_numRew
      %  4. shownumber (1-4,6-9)
      %  5. ITI
+     %  6. imagenum
+     maxNumRXT=.8; %seconds
+     idealHitRate=.8; % 80 percent
      cueTime=3.5; numTime=.1;receiptTime=1.5;
-     cueIDX=1; ISI_cueNumIDX=2; ISI_numRewIDX=3; shownumIDX=4; ITIIDX=5;
+
+     cueIDX=1; ISI_cueNumIDX=2; ISI_numRewIDX=3; shownumIDX=4; ITIIDX=5; imagenumIDX=6;
      cueRew=1; cueNue=0;
      
-     design=ones(7,5);
+     design=ones(8,6);
 
      % set neut/reward trials
-     design(:,cueIDX) = randi(4,length(design),1)>3
+     % neutral is 0, happens 1/4 of the time
+     design(:,cueIDX)        = randi(4,length(design),1)>3;
 
-     % distribute 
+     % ISI between 1 and 1.8
+     design(:,ISI_numRewIDX) = randi(8,length(design),1)/10 + 1;
+     % ISI between 1-6
+     design(:,ISI_numRewIDX) = exprnd(2,length(design),1)+1;
+     design(:,find(design(:,ISI_numRewIDX)>6)) = 6;
+
 
      % random ones and zeros
      design(:,shownumIDX)=randi(10,length(design),1);
@@ -134,19 +152,24 @@ function [subject, time] = MID(varargin)
      design(:,totalTrialIDX)=cumsum(sum(design(:,[ISI_cueNumIDX ISI_numRewIDX ITIIDX]),2)+cueTime+numTime+receiptTime);
 
      
-     % sort of allocate time
+     %  allocate time array of structs (sort of)
      times(size(design,1)).trialstart.actual=0;
      
      
       %% Instructions     
      Instructions = { ...
-        [ 'You will be bored\n\n' ...
-          'Nothing is as bad as this task...\n'...
+        [ 'Right pointer finger for\n  '...
+          rewardScene ' scenes\nor smaller than 5\n' ...
+        ], ...
+        [ 'Right middle finger for\n  '...
+          neutralScene ' scenes\nor bigger than 5\n' ...
         ], ...
         [ 'Are you ready?\n\n' ...
           'Well, too bad\n'  ] ...
       }; 
-     InstructionsBetween = 'Choose a fruit';
+
+     InstructionsBetween = ['pointer is ' rewardScene  ' and smaller than 5\n'...
+                            'middle is '  neutralScene ' and bigger than 5\n' ];
    
      % is the first time loading?
      % we know this by where we are set to start (!=1 if loaded from mat)
@@ -185,6 +208,8 @@ function [subject, time] = MID(varargin)
          subject.block(blocknum).corrects=ones(size(design,1),1)*-1;
          subject.block(blocknum).cues=ones(size(design,1),1)*-1;
          subject.block(blocknum).starttimes=ones(size(design,1),1)*-1;
+         subject.block(blocknum).cuerxts=ones(size(design,1),1)*-1;
+         subject.block(blocknum).cuecorrects=ones(size(design,1),1)*-1;
 
          
          StartOfRunTime = GetSecs();
@@ -209,10 +234,10 @@ function [subject, time] = MID(varargin)
                %% HIT RATE
                % want to match at 80% hit rate
                % adjust hit rate
-               if(subject.lastcorrect==1 && subject.totalcorrect/subject.totaltrials > .8)
+               if(subject.lastcorrect==1 && subject.totalcorrect/subject.totaltrials > idealHitRate)
                        subject.allowedrxt=subject.allowedrxt-rxtdelta;
                 %       fprintf('rxt decremented to %f\n', subject.allowedrxt)
-               elseif(subject.lastcorrect~=1 && subject.totalcorrect/subject.totaltrials < .8 && subject.allowedrxt< 1 )
+               elseif(subject.lastcorrect~=1 && subject.totalcorrect/subject.totaltrials < idealHitRate && subject.allowedrxt< maxNumRXT )
                        subject.allowedrxt=subject.allowedrxt+rxtdelta;
                 %       fprintf('rxt decremented to %f\n', subject.allowedrxt)
                else
@@ -228,13 +253,26 @@ function [subject, time] = MID(varargin)
                else
                    correctCode=KbName('2@');
                end
+
+               %fprintf('we are looking to %d for for idx %d, have neut %d and rew %d\n',...
+               %  imagenumIDX, design(trialnum,imagenumIDX), length(scenes.(neutralScene)),...
+               %  length(scenes.(rewardScene)) )
+
+               if(cuetype==1) % reward is 1
+                   cueCorrectCode=KbName('1!');
+                   texture=scenes.(rewardScene){design(trialnum,imagenumIDX)};
+
+               else
+                   cueCorrectCode=KbName('2@');
+                   texture=scenes.(neutralScene){design(trialnum,imagenumIDX)};
+               end
                
                %% stimulus
                % show one of the images from scene
                % duration is fixed at 3.5 -- but we want to compensate for any lost time
                time(trialnum).cue.duration=cueTime - (time(trialnum).trialstart.actual - time(trialnum).trialstart.expect ) ;   
                time(trialnum).cue.expect  = increaseTime(time(trialnum).cue.duration);
-               time(trialnum).cue.actual  = showCue(cuetype,time(trialnum).cue.expect);
+               [ cuerxt, cuecorrect, time(trialnum).cue.actual ] = showCue(cueCorrectCode,time(trialnum).cue.expect,texture);
 
                % jittered wait
                time(trialnum).ISIcueNum.duration=design(trialnum,ISI_cueNumIDX);
@@ -266,9 +304,11 @@ function [subject, time] = MID(varargin)
                %% wrap up
                % update block info
                subject.block(blocknum).starttimes(trialnum) = trialStartTime;
+               subject.block(blocknum).cues(trialnum)       = cuetype;
+               subject.block(blocknum).cuerxts(trialnum)    = cuerxt;
+               subject.block(blocknum).cuecorrects(trialnum)= cuecorrect;
                subject.block(blocknum).scores(trialnum)     = correct;
                subject.block(blocknum).rxts(trialnum)       = rxt;
-               subject.block(blocknum).cues(trialnum)       = cuetype;
 
                % update subject
                subject.totaltrials = subject.totaltrials+1;
@@ -277,7 +317,8 @@ function [subject, time] = MID(varargin)
                %subject.totalcorrect=length(find(subject.block(blocknum).scores==1));
                if(correct==1); subject.totalcorrect=subject.totalcorrect+1; end
                
-               fprintf('===%i RXT %d %.1f (rsp time: %.3f)====\n',trialnum,correct,rxt,subject.allowedrxt);
+               fprintf('===%i cue RXT %d %.1f               ====\n',trialnum,cuecorrect,cuerxt);
+               fprintf('  =   RXT %d %.1f (rsp time: %.3f)=   \n',         correct,rxt,subject.allowedrxt);
                fprintf('# timepoint\tdiff\tactl expctd\tintnd dur\n')
                for tpnts={'trialstart','cue','ISIcueNum','num','ISInumRew','receipt'}
                   tpnts=tpnts{1};
@@ -331,18 +372,45 @@ function [subject, time] = MID(varargin)
     end
    
     %% indoor or outdor scene
-    %showCue(cuetype,time(trialnum).cue.expect);
-    function endtime = showCue(cuetype, endtime)
-       if(cuetype)
-           Screen('DrawTexture', w,  scenes.Outdoors{1}  );
-           %DrawFormattedText(w, int2str(rewardNumber),'center','center',black);
-       else
-           Screen('DrawTexture', w,  scenes.Indoors{1}  ); 
-           %DrawFormattedText(w, int2str(rewardNumber),'center','center',black);
-       end
-       Screen('Flip', w); 
-       endtime=WaitSecs('UntilTime', endtime);
+    function [rxt, correct, endtime ] = showCue(correctCode, endtime,texture)
+        correct=-1;
+        Screen('DrawTexture', w, texture); 
+        Screen('Flip', w); 
+        
+        %check input
+        while(GetSecs()<endtime)
+          [ keyIsDown, rxt, keyCode ] = KbCheck;
+          
+          if(keyCode(escKey));
+              msgAndCloseEverything(['Quit on trial ' num2str(trialnum)]);
+              error('quit early (on %d)\n',trialnum)
+          end
+          
+          if(any(keyCode(acceptableKeyPresses))); 
+              if(keyCode(correctCode))
+                  correct=1;
+              else
+                  correct=0;
+              end
+              break
+           end
+        end
+
+        % show cross for remander
+        endtime=fixation(endtime);
     end
+    % %showCue(cuetype,time(trialnum).cue.expect);
+    % function endtime = showCue(cuetype, endtime)
+    %    if(cuetype)
+    %        Screen('DrawTexture', w,  scenes.Outdoor{1}  );
+    %        %DrawFormattedText(w, int2str(rewardNumber),'center','center',black);
+    %    else
+    %        Screen('DrawTexture', w,  scenes.Indoor{1}  ); 
+    %        %DrawFormattedText(w, int2str(rewardNumber),'center','center',black);
+    %    end
+    %    Screen('Flip', w); 
+    %    endtime=WaitSecs('UntilTime', endtime);
+    % end
 
     %% Fixations
     % fixation(time(trialnum).ISInumRew.expect);
@@ -456,8 +524,8 @@ function seconds = waitForResponse(varargin)
           [ keyIsDown, seconds, keyCode ] = KbCheck;
           
           if(keyIsDown && keyCode(escKey));
-              msgAndCloseEverything(['Quit on trial ' num2str(i)]);
-              error('quit early (on %d)\n',i)
+              msgAndCloseEverything(['Quit on trial ' num2str(trialnum)]);
+              error('quit early (on %d)\n',trialnum)
            end
           
           % go on any key
