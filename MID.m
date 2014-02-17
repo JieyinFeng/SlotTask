@@ -130,6 +130,8 @@ function [subject, time] = MID(varargin)
      cueIDX=1; ISI_cueNumIDX=2; ISI_numRewIDX=3; shownumIDX=4; ITIIDX=5; imagenumIDX=6;
      cueRew=1; cueNue=0;
      
+     % n X m: n is number of trials per block
+     %        m is  number of 
      design=ones(8,6);
 
      % set neut/reward trials

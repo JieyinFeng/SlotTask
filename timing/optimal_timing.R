@@ -15,10 +15,13 @@ library(fmri)
 
 ###########			EFFICIENCY FUNCTIONS
 D <- function (design_vector) {
+   ## peak to peak bold (min/max) given ITI and ISI
 	PPheight <- max(design_vector) - min(design_vector)
 	PPheight / sqrt(t(design_vector) %*% design_vector)
 }
  
+# see also FSL man page and list
+# -- also white papers
 efficiency <- function (contrasts, design_matrix) {
 	solve( t(contrasts) %*% solve(t(design_matrix) %*% design_matrix) %*% contrasts )
 }
@@ -198,13 +201,17 @@ for (order in 1:4) {
 
 ############################################################
 
-
+# EV: push, anticipation, win, lose 
+# 
+#  -- transpose each EV in sierise
+#
 
 create_design_matrix <- function(ttype_dist) {
 	
 	current_ttype_dist <- randomize_ttypes(ttype_dist, 5)
 	
 	# intialize iterated variables
+	# explanitory var
 	EVs <- vector("list", 16)
 	EV_durations <- vector("list", 16)
 	current_event_time = 0

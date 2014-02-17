@@ -1,7 +1,7 @@
 % Slot Task:
 %  1. show "SELECT FRUIT" slot machine that has 4 choices
 %  2. take choice input from button box
-%     2.1 show warning if same choice is made twice, go back to 1 (500ms)
+%     NO LONGER 2.1 show warning if same choice is made twice, go back to 1 (500ms)
 %  4. Show "spin" slot machine for 500ms
 %  5. show results slot machine for 1000ms
 %  WIN BLOCK
@@ -46,7 +46,7 @@ function SlotTask(varargin)
   % defines opts structure     
   % sets screen resolution
   % and some debug options
-  getopts(varargin); 
+  opts=getopts(varargin); 
   
   %% what are we doing
   blocktype='WINBLOCK';
@@ -135,11 +135,17 @@ function SlotTask(varargin)
 
      %% Instructions     
      Instructions = { ...
-        [ 'You will be bored\n' ...
-          'Nothing is as bad as this task\n'...
+        [ 'You will see a slot machine\n' ...
+          'Push any button to pull the lever\n'...
+          'If you choose correctly, you will win that round\n'...
+        ], ...
+        [ 'Correct answers are entirely random\n'...
+          'There is no pattern\n' ...
+          'But you cannot win if you push the same button twice in a row' ...
         ], ...
         [ 'Are you ready?\n' ...
-          'Well too bad\n'  ] ...
+          '' ...
+        ] ...
       }; 
      InstructionsBetween = 'Choose a fruit';
    
@@ -166,7 +172,7 @@ function SlotTask(varargin)
      end
      
      %% wait for scanner start
-     DrawFormattedText(w, ['Get Ready (waiting for scanner "^")\n'],'center','center',black);
+     DrawFormattedText(w, ['Loading... (waiting for scanner "^")\n'],'center','center',black);
      Screen('Flip', w);
      waitForResponse('6^')
      StartOfRunTime = GetSecs();
@@ -528,7 +534,7 @@ function seconds = waitForResponse(varargin)
 
 
 %% SET OPTIONS
- function getopts(o)
+ function opts=getopts(o)
       
       %% BY DEFAULT
       opts.DEBUG=0;
@@ -565,6 +571,8 @@ function seconds = waitForResponse(varargin)
                   
               otherwise
                   fprintf('unknown option #%d\n',i)
+                  %opts.(o{i}) = o{i+1}; 
+                  %i=i+1;
           end
           
        i=i+1;    
