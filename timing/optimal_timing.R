@@ -55,14 +55,24 @@ plot_corr <- function(mat, label=c()) {
 
 ###########		RANDOMIZE 
 ###########		THIS IS SPECIFIC FOR THIS PARADIGM IN COMPARING TTYPES 1 VS 2 (CEILING TTYPE/8)
-
+## given a trial type distribution (vector 1-16 of EVs?), resample it
+## resampled dist will not have more than 2 types (1-8 or 8-16) in a row 
 randomize_ttypes <- function(ttype_dist, types_in_a_row=3) {
+
+   # could be written
+   #   current_random_dist <- sample(ttype_dist, length(ttype_dist))
+   #   while ( max(rle(ceiling(randomize_ttypes(ttype_dist[[1]])/8))$length) >= types_in_a_row ) )
+   #      current_random_dist <- sample(ttype_dist, length(ttype_dist))
+   #   return(current_random_dist)
 
 	add_to_length = types_in_a_row - 1
 	repeated_trials = T
 
+
 	while (repeated_trials == T) {
 		current_random_dist <- sample(ttype_dist, length(ttype_dist))
+
+
 		current_pred_cue_dist <- ceiling(current_random_dist/8) # ttypes 1-8 pred, 9-16 unpred
 		repetitions_found <- F
 
@@ -86,7 +96,35 @@ randomize_ttypes <- function(ttype_dist, types_in_a_row=3) {
 }
 
 
+
+### take ttype 1-16 and deduce pred_cue, rew_cue, and outcome
+# used in design matrix
+# > current_ttype_dist[1]
+#   10
+# > return <- EVs(current_ttype_dist[1])
+#   pred_cueEV rew_cueEV outcomeEV
+#   1          2         9        15
+#
+
 return_EVs <- function(ttype) {
+   # also written as
+   #
+   # translate ttype into pred rew and outcome types
+   #
+   # #                 1    2
+   # predlist <- list(1:8,9:16)
+   #
+   # #                    3       4        5      6      7          8        9      10
+   # rewlist  <- list( c(1,3),c(5,7), c(2,4), c(6,8), c(9,11),c(13,15), c(10,12),c(14,16) )
+   #
+   # #                    11     12       13     14      15            16
+   # outlist  <- list( c(1,2),c(5,6), c(7,8), c(3,4), c(9,10,13,14), c(11,12,15,16) )
+   # # where ttype matches in the lists deterims what pred,rew,and outcome type are
+   # pred_cue <- which(sapply(predlist,function(x){ ttype %in% x})
+   # rew_cue  <- which(sapply(rewlist, function(x){ ttype %in% x}) + 2
+   # outcome  <- which(sapply(outlist, function(x){ ttype %in% x}) + 10
+   #
+
 	if (ttype %in% 1:8) {
 		pred_cue <- 1
 		# rew cue
@@ -135,76 +173,14 @@ return_EVs <- function(ttype) {
 } # end function
 
 
-
-
-
-#######################################################
-###########			ISI & ITI DISTRIBUTIONS
-#######################################################
-isi <- seq(0.4,2.1,by=0.2)
-#isi <- rep(0.5, 34)
-counts <- round(2*exp(isi))
-# 6  7  9 11 13 16 20 24 30
-seconds <- rev(4*isi)
-# 8.0 7.2 6.4 5.6 4.8 4.0 3.2 2.4 1.6
-isi_dist <- c()
-for (i in 1:length(isi)) {
-	current_isi_counts <- rep(seconds[i], each=counts[i])
-	isi_dist <- c(isi_dist, current_isi_counts)
-}
-
-iti <- seq(0.6,2.1,by=0.2)
-#iti <- rep(0.5, 34)
-
-counts <- round(exp(iti))
-# 6  7  9 11 13 16 20 24 30
-seconds <- rev(4*iti)
-# 8.0 7.2 6.4 5.6 4.8 4.0 3.2 2.4 1.6
-iti_dist <- c()
-for (i in 1:length(iti)) {
-	current_iti_counts <- rep(seconds[i], each=counts[i])
-	iti_dist <- c(iti_dist, current_iti_counts)
-}
-
-
-#######################################################
-###########			TRIAL TYPE DISTRIBUTIONS
-#######################################################
-
-# create list of times for events (times, total duration, resolution)
-# convolve with HRF
-# resample into TR space
-# check correlations
-# check efficiency
-
-
-n_ttypes 	= 16
-n_EVs 		= 16
-
-ttype_counts <- vector("list", length = 4)
-ttype_counts[[1]] <- c(3,2,0,1, 2,3,1,0, 2,1,1,2, 1,2,2,1)
-ttype_counts[[2]] <- c(2,3,1,0, 3,2,0,1, 2,1,1,2, 1,2,2,1)
-ttype_counts[[3]] <- c(3,2,0,1, 2,3,1,0, 1,2,2,1, 2,1,1,2)
-ttype_counts[[4]] <- c(2,3,1,0, 3,2,0,1, 1,2,2,1, 2,1,1,2)
-
-
-
-ttype_dist <- vector("list", length = 4)
-for (order in 1:4) {
-	for (i in 1:length(ttype_counts[[order]])) {
-		current_ttype_counts <- rep(i, each=ttype_counts[[order]][i])
-		ttype_dist[[order]] <- c(ttype_dist[[order]], current_ttype_counts)
-	}
-}
-
-
-
-############################################################
-
-# EV: push, anticipation, win, lose 
-# 
-#  -- transpose each EV in sierise
+### 
+# randomize list of events
 #
+# output like
+#  $trials_list
+#   trial_num ttype info_cue rew_cue outcome info_onset isi1 cue_onset isi2 rew_onset iti
+#   1         1     4        1       5      14        0.0  1.6       3.6  8.0      13.6 3.2
+#   2         2     5        1       4      12       18.8  2.4      23.2  1.6      26.8 5.6
 
 create_design_matrix <- function(ttype_dist) {
 	
@@ -216,18 +192,22 @@ create_design_matrix <- function(ttype_dist) {
 	EV_durations <- vector("list", 16)
 	current_event_time = 0
 	
-	
-	
+	# 2 sets of isis, 1 set of iti
 	current_isi_dist <- list()
 	current_isi_dist[[1]] <- sample(isi_dist, length(current_ttype_dist), replace=T)
 	current_isi_dist[[2]] <- sample(isi_dist, length(current_ttype_dist), replace=T)
 	current_iti_dist <- sample(iti_dist, length(current_ttype_dist), replace=T)
 	
 	
+   # dataframe that will hold each trials onset and cue/prep/reward types
 	trials_list <- data.frame(matrix(nrow=length(current_ttype_dist),ncol=11))
 	names(trials_list) <-c("trial_num", "ttype", "info_cue", "rew_cue", "outcome", 
 			"info_onset", "isi1", "cue_onset", "isi2", "rew_onset", "iti")
 	
+   # for each trial
+   #  1. set get onset time (incremented at each event)  
+   #  2. build list of EV@time for design matrix (second each ev happens, varaible length)
+   #  3. build dataframe row (onset and trial type for rew/cue/out)
 	for (trial in 1:length(current_ttype_dist)) {
 		
 		ev_list <- return_EVs(current_ttype_dist[trial]) # pred_cueEV rew_cueEV outcomeEV
@@ -292,6 +272,99 @@ create_design_matrix <- function(ttype_dist) {
 
 
 }
+#### end functions ####
+
+
+
+
+#######################################################
+###########			ISI & ITI DISTRIBUTIONS
+#######################################################
+
+# create isi_dist where there are many more quick isi than short 
+isi <- seq(0.4,2.1,by=0.2)
+#isi <- rep(0.5, 34)
+counts <- round(2*exp(isi))
+# 6  7  9 11 13 16 20 24 30
+seconds <- rev(4*isi)
+# 8.0 7.2 6.4 5.6 4.8 4.0 3.2 2.4 1.6
+isi_dist <- c()
+for (i in 1:length(isi)) {
+	current_isi_counts <- rep(seconds[i], each=counts[i])
+	isi_dist <- c(isi_dist, current_isi_counts)
+}
+# also written: isi_dist <- rep(seconds,counts)
+# > txtdensity(isi_dist,height=10,width=30)
+#       +-+**----+------+------++
+#   0.2 +** ***                 +
+#       |*    ***               |
+#  0.15 +       ***             +
+#       |         ***           |
+#   0.1 +           ****        +
+#       |              *****    |
+#  0.05 +                  *****+
+#       +-+------+------+------*+
+#         2      4      6      8
+
+
+iti <- seq(0.6,2.1,by=0.2)
+#iti <- rep(0.5, 34)
+
+counts <- round(exp(iti))
+# 6  7  9 11 13 16 20 24 30
+seconds <- rev(4*iti)
+# 8.0 7.2 6.4 5.6 4.8 4.0 3.2 2.4 1.6
+iti_dist <- c()
+for (i in 1:length(iti)) {
+	current_iti_counts <- rep(seconds[i], each=counts[i])
+	iti_dist <- c(iti_dist, current_iti_counts)
+}
+
+
+#######################################################
+###########			TRIAL TYPE DISTRIBUTIONS
+#######################################################
+
+# create list of times for events (times, total duration, resolution)
+# convolve with HRF
+# resample into TR space
+# check correlations
+# check efficiency
+
+
+n_ttypes 	= 16
+n_EVs 		= 16
+
+ttype_counts <- vector("list", length = 4)
+ttype_counts[[1]] <- c(3,2,0,1, 2,3,1,0, 2,1,1,2, 1,2,2,1)
+ttype_counts[[2]] <- c(2,3,1,0, 3,2,0,1, 2,1,1,2, 1,2,2,1)
+ttype_counts[[3]] <- c(3,2,0,1, 2,3,1,0, 1,2,2,1, 2,1,1,2)
+ttype_counts[[4]] <- c(2,3,1,0, 3,2,0,1, 1,2,2,1, 2,1,1,2)
+
+
+
+ttype_dist <- vector("list", length = 4)
+for (order in 1:4) {
+	for (i in 1:length(ttype_counts[[order]])) {
+		current_ttype_counts <- rep(i, each=ttype_counts[[order]][i])
+		ttype_dist[[order]] <- c(ttype_dist[[order]], current_ttype_counts)
+	}
+}
+
+
+
+############################################################
+
+# eventually will want
+#  Explanitory Variables:
+#   button push, anticipation, win, lose 
+#   -- win/loss fixed at 1/4 
+# design matrix is column for binary EV run, row for each presentation
+# button, antic., win, lose
+# 1         0      0    0
+# 0         1      0    0
+# 0         0      1    0
+# 
 
 
 
