@@ -1,13 +1,9 @@
 # FROM DAVID PAULSEN 2013-10-26
 # Optimize jittering for fMRI event related design
+# see doi:10.1016/j.neuroimage.2006.09.019
 
-#library(neuRosim)
 library(fmri)
-
-
-
-
-
+#library(neuRosim)
 
 #######################################################
 ###########			FUNCTIONS
@@ -184,7 +180,6 @@ return_EVs <- function(ttype) {
 	
 } # end function
 
-
 ### 
 # randomize list of events
 #
@@ -285,176 +280,3 @@ create_design_matrix <- function(ttype_dist) {
 
 }
 #### end functions ####
-
-
-
-
-#######################################################
-###########			ISI & ITI DISTRIBUTIONS
-#######################################################
-
-# create isi_dist where there are many more quick isi than short 
-isi <- seq(0.4,2.1,by=0.2)
-#isi <- rep(0.5, 34)
-counts <- round(2*exp(isi))
-# 6  7  9 11 13 16 20 24 30
-seconds <- rev(4*isi)
-# 8.0 7.2 6.4 5.6 4.8 4.0 3.2 2.4 1.6
-isi_dist <- c()
-for (i in 1:length(isi)) {
-	current_isi_counts <- rep(seconds[i], each=counts[i])
-	isi_dist <- c(isi_dist, current_isi_counts)
-}
-# also written: isi_dist <- rep(seconds,counts)
-# > txtdensity(isi_dist,height=10,width=30)
-#       +-+**----+------+------++
-#   0.2 +** ***                 +
-#       |*    ***               |
-#  0.15 +       ***             +
-#       |         ***           |
-#   0.1 +           ****        +
-#       |              *****    |
-#  0.05 +                  *****+
-#       +-+------+------+------*+
-#         2      4      6      8
-
-
-iti <- seq(0.6,2.1,by=0.2)
-#iti <- rep(0.5, 34)
-
-counts <- round(exp(iti))
-# 6  7  9 11 13 16 20 24 30
-seconds <- rev(4*iti)
-# 8.0 7.2 6.4 5.6 4.8 4.0 3.2 2.4 1.6
-iti_dist <- c()
-for (i in 1:length(iti)) {
-	current_iti_counts <- rep(seconds[i], each=counts[i])
-	iti_dist <- c(iti_dist, current_iti_counts)
-}
-
-
-#######################################################
-###########			TRIAL TYPE DISTRIBUTIONS
-#######################################################
-
-# create list of times for events (times, total duration, resolution)
-# convolve with HRF
-# resample into TR space
-# check correlations
-# check efficiency
-
-
-n_ttypes 	= 16
-n_EVs 		= 16
-
-ttype_counts <- vector("list", length = 4)
-ttype_counts[[1]] <- c(3,2,0,1, 2,3,1,0, 2,1,1,2, 1,2,2,1)
-ttype_counts[[2]] <- c(2,3,1,0, 3,2,0,1, 2,1,1,2, 1,2,2,1)
-ttype_counts[[3]] <- c(3,2,0,1, 2,3,1,0, 1,2,2,1, 2,1,1,2)
-ttype_counts[[4]] <- c(2,3,1,0, 3,2,0,1, 1,2,2,1, 2,1,1,2)
-
-
-
-ttype_dist <- vector("list", length = 4)
-for (order in 1:4) {
-	for (i in 1:length(ttype_counts[[order]])) {
-		current_ttype_counts <- rep(i, each=ttype_counts[[order]][i])
-		ttype_dist[[order]] <- c(ttype_dist[[order]], current_ttype_counts)
-	}
-}
-
-
-
-############################################################
-
-# eventually will want
-#  Explanitory Variables:
-#   button push, anticipation, win, lose 
-#   -- win/loss fixed at 1/4 
-# design matrix is column for binary EV run, row for each presentation
-# button, antic., win, lose
-# 1         0      0    0
-# 0         1      0    0
-# 0         0      1    0
-# 
-
-
-
-
-stim_parameters <- vector("list", 5)
-current_stim_parameters <- list("sum_efficiency"=0,
-	"eff_predictive"=0,
-	"eff_familiar"=0,
-	"eff_rew_size"=0,
-	"design1"=NULL,
-	"design2"=NULL,
-	"design3"=NULL,
-	"design4"=NULL)
-
-stim_parameters[[1]] <- current_stim_parameters
-
-
-
-for (iterations in 1:2000) {
-	print(iterations)
-	design1 <- create_design_matrix(ttype_dist[[1]])
-	design2 <- create_design_matrix(ttype_dist[[2]])
-	design3 <- create_design_matrix(ttype_dist[[3]])
-	design4 <- create_design_matrix(ttype_dist[[4]])
-	
-	design_matrix <- rbind(design1$design_matrix, design1$design_matrix,
-		design3$design_matrix, design4$design_matrix)
-	
-	
-	#plot_corr(design_matrix)
-	
-	pred_vs_unpred <- c(1,-1, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0)
-	fam_vs_nov <- c(0,0, .25,.25,-.25,-.25, .25,.25,-.25,-.25, 0,0,0,0, 0,0)
-	predlg_vs_predsm <- c(0,0, .5,-.5,.5,-.5, 0,0,0,0, 0,0,0,0, 0,0)
-	rpe <- c(0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0)
-	
-	eff_predictive <- efficiency(pred_vs_unpred, design_matrix)
-	eff_familiar <- efficiency(fam_vs_nov, design_matrix)
-	eff_rew_size <- efficiency(predlg_vs_predsm, design1$design_matrix)
-	
-	sum_efficiency <- eff_predictive + eff_familiar + eff_rew_size
-	
-	current_stim_parameters <- list("sum_efficiency"=sum_efficiency,
-		"eff_predictive"=eff_predictive,
-		"eff_familiar"=eff_familiar,
-		"eff_rew_size"=eff_rew_size,
-		"design1"=design1,
-		"design2"=design2,
-		"design3"=design3,
-		"design4"=design4)
-	
-	
-	if (sum_efficiency > stim_parameters[[1]]$sum_efficiency) {
-		for (i in min(length(stim_parameters),4):1) {
-			stim_parameters[[i+1]] <- stim_parameters[[i]]
-		}
-		stim_parameters[[1]] <- current_stim_parameters
-	}
-
-}
-
-#save(stim_parameters, file="/Users/dpaulsen/Documents/Academics/Projects/RewardInfo/stim_parameters.R")
-
-
-
-
-
-
-# DATA FROM PREVOUS FSL OUTPUT
- X <- as.matrix(read.table("/Users/dpaulsen/Documents/Academics/Projects/RewardInfo/scripts/10128/design.mat", skip=5))
-contrast_mat <-  as.matrix(read.table("/Users/dpaulsen/Documents/Academics/Projects/RewardInfo/scripts/10128/design.con", skip=25))
-PPheight <-  read.table("/Users/dpaulsen/Documents/Academics/Projects/RewardInfo/scripts/10128/design.con", skip=21, nrows = 1)[-1]
-contrast1 <- c(1,-1,0,0,0,0,0,0,0,0)
-X <- as.matrix(design_mat[,seq(1,19,by=2)])
-efficiency(contrast1,X)
-
-
-
-
-
-
