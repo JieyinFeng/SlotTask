@@ -65,29 +65,39 @@ stim_parameters <- current_stim_parameters
 
 nIterations<-500;
 
-effs<-array(dim=nIterations)
+effs<-list()
 for (iterations in 1:nIterations) {
 	print(iterations)
 
    design_matrix <-   create_design_matrix(ttype_dist,isi_dist,iti_dist)
 	
 	
+	#                          c(anticipation,win,lose)
+	contrasts <- list(
+	  win_vs_lose             = c(0,1,-1),
+	  anticipation_vs_outcome = c(2,-1,-1),
+	  anticipation            = c(1,0,0),
+	  win                     = c(0,1,0),
+	  lose                    = c(0,0,1),
+	)
 	
-	win_vs_lose <- c(1,-1)
-	
-	eff_winlose <- efficiency(win_vs_lose, design_matrix$design_matrix)
+	# solve each contrast with the design matrix
+	efficencies <- lapply(contrasts,efficiency,design_matrix$design_matrix)
 
    # record all
-   effs[iterations] <- eff_winlose
+   effs[iterations] <- efficiency;
+
+   effsum<-lapply(efficiency,sum)
 	
 	
 	current_stim_parameters <- list(
-		"eff_winlose"=eff_rew_size,
-		"design"=design_matrix)
+		 efficencies=efficencies,
+		     eff_sum=effsum,
+		      design=design_matrix)
 	
   	
    # update if eff_winlose is bigger than contender
-	if (eff_winlose > stim_parameters$eff_winlose) {
+	if (effsum > stim_parameters$eff_sum) {
 		#for (i in min(length(stim_parameters),4):1) {
 		#	stim_parameters[[i+1]] <- stim_parameters[[i]]
 		#}

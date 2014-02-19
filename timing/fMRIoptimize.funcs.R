@@ -62,17 +62,28 @@ create_design_matrix <- function(ttype_dist,isi_dist,iti_dist) {
 	TR <- 1.5
    # fixed timing (not isi or iti)
    duration <- data.frame('spin'=.5,'win'=.5,'receipt'=1)
-
-   nTrlTyps <- length(unique(ttype_dist))
+   # anticipation is an EV but not in ttype_dist, so + 1 
+   nTrlTyps <- length(unique(ttype_dist)) + 1
 	
 	# resample distributions
 	current_ttype_dist <- sample(ttype_dist)
+
+   # make sure we dont have thigns repeating too much
+   maxwinrepeat  <- 3
+   maxloserepeat <-6
+   ttrl <- rle(current_ttype_dist)
+   while(max(ttrl$lengths[ttrl$values==1])>maxwinrepeat ||
+         max(ttrl$lengths[ttrl$values==2])>maxloserepeat   ){
+     current_ttype_dist <- sample(current_ttype_dist)
+     ttrl <- rle(current_ttype_dist)
+   }
+
 	current_isi_dist   <- sample(isi_dist, length(current_ttype_dist), replace=T)
 	current_iti_dist   <- sample(iti_dist, length(current_ttype_dist), replace=T)
 	
 	# intialize iterated variables
 	# explanitory var
-	EVs <- vector("list", nTrlTyps)
+	EVs <- vector("list", nTrlTyps) 
 	EV_durations <- vector("list", nTrlTyps)
 	current_event_time = 0
 	
@@ -88,45 +99,60 @@ create_design_matrix <- function(ttype_dist,isi_dist,iti_dist) {
    #  2. build list of EV@time for design matrix (second each ev happens, varaible length)
    #  3. build dataframe row (onset and trial type for rew/cue/out)
 	for (trial in 1:length(current_ttype_dist)) {
+        # TODO: what if this is random?
+	    # df$buttonpush <- sample( rep(seq(.3,1,.1),  rev(round(sapply(1:8/3,exp))) ), 1 )
+	    # ... run a bunch of simulations
+        duration$buttonpush <- 1
+
 
 		df <-data.frame(trial_num=trial, ttype=current_ttype_dist[trial], 
                       isi=current_isi_dist[trial], iti=current_iti_dist[trial]
                      )
-      # win (1) or lose (2)?
-      trialtype <- current_ttype_dist[trial]
 
 
-		df$info_onset <- current_event_time
+        
+		
+        #### 0.1: see stimulus
+        #current_event_time <- current_event_time
+		
+		#### 0.2: BUTTON PUSH (EV is anticipation)
+        trialtype<-1 # this is not variable -- they always have to push a button (always the same screen)
+        # update time first, anticipation is what we're after -- it's after the button push
+		current_event_time <- duration$buttonpush + current_event_time
+	    df$buttonRelease <- current_event_time 
+        # update EV list
+	    EVs[[trialtype]] <- c(EVs[[trialtype]], current_event_time) 
+	    EV_durations[[trialtype]] <- c(EV_durations[[trialtype]], duration$buttonpush) 
 
-		# 1: BUTTON PUSH + Spin
-      duration$buttonpush <- .5 
-
-      # TODO: what if this is random?
-      # df$buttonpush <- sample( rep(seq(.3,1,.1),  rev(round(sapply(1:8/3,exp))) ), 1 )
-      # ... run a bunch of simulations
-
-      bsdur = duration$buttonpush + duration$spin
-
-		current_event_time <- current_event_time + bsdur
+        
+        #### 1 SPIN
+        current_event_time <- current_event_time + duration$spin
 	
 
-		# 2 ISI	
+		#### 2 ISI	
 		current_event_time <- current_event_time + df$isi
 		
 		
 
-		# 3: WIN OR LOSE
+		##### 3: WIN OR LOSE  (actual receipt?)
+		# win (2) or lose (3)
+        trialtype <- current_ttype_dist[trial] + 1
+    
+        # update data frame
 		df$win_onset <- current_event_time
-      # add current time to EV list
+    
+        # add to EVs
 		EVs[[trialtype]] <- c(EVs[[trialtype]], current_event_time) 
-      # add current time to EV list
 		EV_durations[[trialtype]] <- c(EV_durations[[trialtype]], duration$win) 
+	
+		# update time
 		current_event_time <- current_event_time + duration$win
 	
-      # 4: receipt
+
+        ##### 4: receipt
 		current_event_time <- current_event_time + duration$receipt
 		
-		# 6 ITI
+		##### 6 ITI
 		current_event_time <- current_event_time + df$iti
 		
 		#trials_list[trial,] <- c(trial, current_ttype_dist[trial], ev_list$pred_cueEV, ev_list$rew_cueEV, ev_list$outcomeEV,

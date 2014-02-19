@@ -40,6 +40,8 @@
 %  - have slot pictures
 % 20130216 - WF
 %  - use private functions from MEGClockTask
+% 20130219 - WF
+%  - use waittilltime to get percision timing on flips
 
 %% SlotTask
 function SlotTask(sid,blk,varargin)
@@ -204,12 +206,14 @@ function SlotTask(sid,blk,varargin)
      
      for trialnum=startTrial:endTrial
         subject.trialnum= trialnum;
+        trialpart=1; % for each event (part) we record timing
 
 
  
         %% Start the trial witha fruit!               
         Screen('DrawTexture', w,  slotimg.CHOOSE);
         trialStartTime = Screen('Flip', w,waittilltime);
+        waittilltime=trialStartTime;
         
         timing.start=trialStartTime-StartOfRunTime;        
         
@@ -226,37 +230,62 @@ function SlotTask(sid,blk,varargin)
          [rspnstime, response] = chooseFruit(trialStartTime,numattempts,w,acceptableKeyPresses);
          numattempts=numattempts+1;
         end
-        % reset wait time, don't want any delay between response time
-        % and showing the spinner
-        waittilltime=0;
+        
+        % want NO delay between response time and spinner
+        % add RT to starttime
+        
+        subject.timing(trialnum,trialpart,:)= ...
+            [ waittilltime; trialStartTime+rspnstime/10^3 ];
+        
+        waittilltime=trialStartTime + rspnstime/10^3 - slack;
+        trialpart=trialpart+1;
         
         
         %% SHOW SPIN
         Screen('DrawTexture', w,  slotimg.BLUR); 
         spinOnset = Screen('Flip', w, waittilltime);
+        
+        %update timing
+        subject.timing(trialnum,trialpart,:)= [ waittilltime; spinOnset ];
+        trialpart=trialpart+1;
         waittilltime = spinOnset + opts.stimtimes.Spin - slack;
+        
+        
         
         %% ISI
         isiOnset = fixation(w,waittilltime);
+        subject.timing(trialnum,trialpart,:)= [ waittilltime; isiOnset ];
+        trialpart=trialpart+1;
         waittilltime = isiOnset + subject.experiment(trialnum,orderIdx('ISI'))/10^3 - slack;
+        
         
         %% SHOW RESULTS (maybe play a sound)
         % get what image should be shown for this trialnum
         imgtype = scoreTrial(trialnum);
         Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
         resultsOnset=Screen('Flip', w,waittilltime);
+        
+        subject.timing(trialnum,trialpart,:)= [ waittilltime; resultsOnset ];
+        trialpart=trialpart+1;
+        
         waittilltime =  resultsOnset + opts.stimtimes.Result -slack;
         
         %% SHOW score
         DrawFormattedText(w, ['your total score is ' num2str(subject.experiment(trialnum,orderIdx('Score'))) '\n' ],'center','center',black);
         receiptOnset = Screen('Flip', w,waittilltime);
+        
+        subject.timing(trialnum,trialpart,:)= [ waittilltime; resultsOnset ];
+        trialpart=trialpart+1;
+
         waittilltime =  receiptOnset + opts.stimtimes.Receipt -slack;
         
         %% ITI
         itiOnset = fixation(w,waittilltime);
+        
+        subject.timing(trialnum,trialpart,:)= [ waittilltime; itiOnset ];
+        trialpart=trialpart+1;
+        
         waittilltime = itiOnset + subject.experiment(trialnum,orderIdx('ITI'))/10^3 - slack;
-        
-        
         
         %% TRIALs ENDED -- record everything
         %TODO!! What should be recorded
@@ -285,7 +314,8 @@ function SlotTask(sid,blk,varargin)
         
         % save to mat so crash can be reloaded
         save(subject.matfile,'trialnum','subject');
-       
+        
+        disp(subject.timing(trialnum,:,:) ) 
         
         
         
