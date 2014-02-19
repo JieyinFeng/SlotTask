@@ -38,28 +38,43 @@
 % 20131024 - WF
 %  - start coding, copy of CogEmoFaceReward  
 %  - have slot pictures
+% 20130216 - WF
+%  - use private functions from MEGClockTask
 
-
-function SlotTask(varargin)
-  %% SlotTask
+%% SlotTask
+function SlotTask(sid,blk,varargin)
+  clear -GLOBAL opts subject;
+  global opts subject;
+  subject.subj_id=sid;
+  subject.run_num=blk;
   
   % defines opts structure     
   % sets screen resolution
   % and some debug options
   opts=getopts(varargin); 
   
-  %% what are we doing
-  blocktype='WINBLOCK';
+  function idx=orderIdx(name)
+    colnames={'Block','ISI','ITI','WIN','Score'};
+    idx=find(cellfun(@(x) any(strmatch(x,name)),colnames));
+  end
   
-  %% Set length of experiment
-  runTimeSec=24*60; % in secs
 
   %% start recording data
   % sets txtfid, subject.*, start, etc 
-  start=1; % before we know anything, we think we'll start at the beginning
-  score=0;
-  txtfid=getSubjInfo();
+  subject=getSubjInfo('SlotPETMRI',subject,opts,blk);
+  start=(subject.run_num-1)*opts.trialsPerBlock +1;
+  
+  % log all output of matlab
+  diaryfile = fullfile('logs/', [num2str(subject.subj_id) '_' num2str(GetSecs()) '_tcdiary.log']);
+  diary(diaryfile);
 
+  % save mat output to a textfile too
+  fprintf('saving to %s\n', subject.txtfile);
+  txtfid      =fopen(subject.txtfile,'a'); % append so we only have one text file but all blocks
+
+  % tabulate total score for each trial
+  canreward = cellfun(@(x) strcmp(x,'WINBLOCK'), opts.blocktypes(subject.experiment(:,orderIdx('Block') ) ));
+  subject.experiment(:,orderIdx('Score')) = cumsum(subject.experiment(:,orderIdx('WIN')) .* canreward');
 
 
   %% launch presentation   
@@ -78,7 +93,11 @@ function SlotTask(varargin)
      % Find out how many screens and use smallset screen number
      % Open a new window.
      [ w, windowRect ] = Screen('OpenWindow', max(Screen('Screens')),backgroundcolor, [0 0 opts.screen] );
-          
+     
+     % screen info
+     FlipInterval = Screen('GetFlipInterval',w); %monitor refresh rate.
+     slack = FlipInterval/2; %used for minimizing accumulation of lags due to vertical refresh
+      
      %permit transparency
      Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
      
@@ -98,7 +117,7 @@ function SlotTask(varargin)
 
      % Set keys.
      %spaceKey  = KbName('SPACE');
-     escKey  = KbName('ESCAPE');
+     % escKey  = KbName('ESCAPE');
      
      % RA can push space, subject can push button box
      acceptableKeyPresses = [ KbName('space') KbName('1!') KbName('2@') KbName('3#') KbName('4$') ];
@@ -117,19 +136,20 @@ function SlotTask(varargin)
      end
 
 
-     %% setup sound
-     % http://docs.psychtoolbox.org/PsychPortAudio
-     % http://wiki.stdout.org/matlabcookbook/Presenting%20auditory%20stimuli/Playing%20sounds/
-     
-     %InitializePsychSound;
-     %[wavedata, sndFreq] = audioread('snd/incorrect.wav');
-     %wavedata=wavedata';
-     %nrchannels = size(wavedata,1);
-     % 2nd to last arg should be sndFreq, but portaudio returns error w/it
-     %todo fix sounds
-     %pahandle= PsychPortAudio('Open', [], [], [], [], nrchannels);
-     %PsychPortAudio('FillBuffer',pahandle,wavedata);
-     
+     %% setup sound -- default to no sounds
+     if(opts.sound)
+         % http://docs.psychtoolbox.org/PsychPortAudio
+         % http://wiki.stdout.org/matlabcookbook/Presenting%20auditory%20stimuli/Playing%20sounds/
+
+         %InitializePsychSound;
+         [wavedata, sndFreq] = audioread('snd/incorrect.wav');
+         wavedata=wavedata';
+         nrchannels = size(wavedata,1);
+         % 2nd to last arg should be sndFreq, but portaudio returns error w/it
+         %todo fix sounds
+         pahandle= PsychPortAudio('Open', [], [], [], [], nrchannels);
+         PsychPortAudio('FillBuffer',pahandle,wavedata);
+     end
      
      
 
@@ -141,11 +161,8 @@ function SlotTask(varargin)
         ], ...
         [ 'Correct answers are entirely random\n'...
           'There is no pattern\n' ...
-          'But you cannot win if you push the same button twice in a row' ...
+          'You need to chose a different button than last time' ...
         ], ...
-        [ 'Are you ready?\n' ...
-          '' ...
-        ] ...
       }; 
      InstructionsBetween = 'Choose a fruit';
    
@@ -159,9 +176,6 @@ function SlotTask(varargin)
              waitForResponse;
          end
 
-        % inialize the order of events only if we arn't resuming
-        %order=cell(length(experiment{facenumC}),1);
-        order=cell(100,1); % variable length!
      
      % subjects know the drill. Give them brief instructions
      % order is already init. and loaded from mat, so don't work about it
@@ -172,99 +186,119 @@ function SlotTask(varargin)
      end
      
      %% wait for scanner start
-     DrawFormattedText(w, ['Loading... (waiting for scanner "^")\n'],'center','center',black);
+     DrawFormattedText(w, '^Get Ready^','center','center',black);
      Screen('Flip', w);
-     waitForResponse('6^')
-     StartOfRunTime = GetSecs();
+
+     % start when we get ^ for scanner
+     StartOfRunTime = waitForResponse('6^');
      
-     i=start; % fixation calls drawRect which uses i to get the block number   
   
    
      
      %% THE BIG LOOP -- block design do for about 24 minutes
-     %for i=start:length(experiment{facenumC})
-     while(GetSecs()-StartOfRunTime < runTimeSec)
-        trialnum=i;
-        %% debug, start time keeping
-        % start of time debuging global var
-        trailStartTime=GetSecs();
-        % seconds into the experiement from start of for loop
-        timing.start=trailStartTime-StartOfRunTime;
+     startTrial = (subject.run_num-1)*opts.trialsPerBlock + 1;
+     endTrial   = subject.run_num*opts.trialsPerBlock;
+     subject.blockTrial(subject.run_num) = 0; %reset block trial
+     
+     waittilltime=0;
+     
+     for trialnum=startTrial:endTrial
+        subject.trialnum= trialnum;
+
+
+ 
+        %% Start the trial witha fruit!               
+        Screen('DrawTexture', w,  slotimg.CHOOSE);
+        trialStartTime = Screen('Flip', w,waittilltime);
+        
+        timing.start=trialStartTime-StartOfRunTime;        
         
         %% choose a fruit, "spin", WIN/NOWIN, score
-
         % get prevchoice so we can make sure we choose differently
-        if(trialnum>1), prevchoice=order{trialnum-1}{4};
+        if(trialnum>1), prevchoice=subject.order(trialnum-1,4);
         else            prevchoice=0; end
         
         % get choice, must be different than previous
         response=prevchoice;
         numattempts=0;
-        while(response==prevchoice)  
-         [rspnstime, response] = chooseFruit(numattempts);
+        while(response==prevchoice)
+         % todo?? capture original response time
+         [rspnstime, response] = chooseFruit(trialStartTime,numattempts,w,acceptableKeyPresses);
          numattempts=numattempts+1;
         end
+        % reset wait time, don't want any delay between response time
+        % and showing the spinner
+        waittilltime=0;
         
         
-        [imgtype, trialscore] =scoreTrial(trialnum,score,blocktype);
-        score=score+trialscore;
         %% SHOW SPIN
-        Screen('DrawTexture', w,  slotimg.BLUR  ); 
-        Screen('Flip', w);
-        WaitSecs(.5);
+        Screen('DrawTexture', w,  slotimg.BLUR); 
+        spinOnset = Screen('Flip', w, waittilltime);
+        waittilltime = spinOnset + opts.stimtimes.Spin - slack;
+        
+        %% ISI
+        isiOnset = fixation(w,waittilltime);
+        waittilltime = isiOnset + subject.experiment(trialnum,orderIdx('ISI'))/10^3 - slack;
         
         %% SHOW RESULTS (maybe play a sound)
+        % get what image should be shown for this trialnum
+        imgtype = scoreTrial(trialnum);
         Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
-        Screen('Flip', w);
-        WaitSecs(1);
+        resultsOnset=Screen('Flip', w,waittilltime);
+        waittilltime =  resultsOnset + opts.stimtimes.Result -slack;
         
         %% SHOW score
-        DrawFormattedText(w, ['your total score is ' num2str(score) '\n' ],'center','center',black);
-        Screen('Flip', w);
-        WaitSecs(1);
+        DrawFormattedText(w, ['your total score is ' num2str(subject.experiment(trialnum,orderIdx('Score'))) '\n' ],'center','center',black);
+        receiptOnset = Screen('Flip', w,waittilltime);
+        waittilltime =  receiptOnset + opts.stimtimes.Receipt -slack;
         
-        %% TRIAL ENDED
+        %% ITI
+        itiOnset = fixation(w,waittilltime);
+        waittilltime = itiOnset + subject.experiment(trialnum,orderIdx('ITI'))/10^3 - slack;
+        
+        
+        
+        %% TRIALs ENDED -- record everything
         %TODO!! What should be recorded
         % wrap up: show/save info
         % trialnum\tstartime\tresponse\ trialscore total
-        trialinfo = { blocktype trialnum trailStartTime rspnstime response trialscore score };
-        order(i) = {trialinfo};
+        numresponse = find(response(acceptableKeyPresses))-1;
         
-        
+        %           blocknum    trialnum  startime response responsetime trialscore total
+        trialinfo = [ subject.experiment(trialnum,1) trialnum trialStartTime rspnstime numresponse subject.experiment(trialnum,[orderIdx('WIN'),orderIdx('Score')]) ];
+        subject.order(trialnum,:) = trialinfo;
+
+        % update trial in block
+        subject.blockTrial(subject.run_num) = subject.blockTrial(subject.run_num) + 1;
+
         % print header
-        if i == 1
-            fprintf(txtfid,'blocktype\ttrialnum\tstartime\tresponse\tresponsetime\ttrialscore\ttotal\n');
+        if trialnum == 1
+            fprintf(txtfid,'blocknum\ttrialnum\tstartime\tresponse\tresponsetime\ttrialscore\ttotal\n');
         end
         
-        fprintf(txtfid,'%s\t',order{i}{1} );
-        fprintf(txtfid,'%i\t',order{i}{2} );
-        fprintf(txtfid,'%.03f\t',order{i}{3:4} );
-        fprintf(txtfid,'%d\t',order{i}{5:6} );
-        fprintf(txtfid,'%d',order{i}{7} );
+        fprintf(txtfid,'%s\t',subject.order(trialnum,1) );
+        fprintf(txtfid,'%i\t',subject.order(trialnum,2) );
+        fprintf(txtfid,'%.03f\t',subject.order(trialnum,3:4) );
+        fprintf(txtfid,'%d\t',subject.order(trialnum,5:6) );
+        fprintf(txtfid,'%d',subject.order(trialnum,7) );
         fprintf(txtfid, '\n');
         
         % save to mat so crash can be reloaded
-        save(filename,'order','trialnum','subject','score');
+        save(subject.matfile,'trialnum','subject');
        
         
         
         
         %% debug, show time of this trial
         if(opts.DEBUG)        
-          timing.end= GetSecs() - trailStartTime;
-          fprintf('%d: (%f,%f) %f\n',i, timing.start, timing.end,timing.end-timing.start);
+          timing.end= GetSecs() - trialStartTime;
+          fprintf('%d: (%f,%f) %f\n',trialnum, timing.start, timing.end,timing.end-timing.start);
         end
 
-      i=i+1;
      end 
 
-    % everyone should earn the bonus
-    % but they should have at least 2000 pts
-    earnedmsg='\n\nYou earned a $25 bonus !'; 
-    if(score<2000); earnedmsg=''; end;
 
-
-    msgAndCloseEverything(['Your final score is ', num2str(score) ,' points', earnedmsg, '\n\nThanks for playing!']);
+    msgAndCloseEverything(['You''ve finished this block!\nTotal score is ', num2str(subject.experiment(trialnum,orderIdx('Score'))) ,' points\n\nThanks for playing!']);
     return
 
   catch
@@ -278,24 +312,24 @@ function SlotTask(varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                           support functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    function [rsptimeMS, keyCode ]=chooseFruit(numattempts)
-        startTimeSec   = GetSecs();
+    function [rsptimeMS, keyCode ]=chooseFruit(starttime,numattempts,w,keys)
         % display screen
-        Screen('DrawTexture', w,  slotimg.CHOOSE  );
         if(numattempts>0)
             % draw warning
+            fprintf('this is the %d attempt\n',numattempts);
         end
         %%draw 
-        Screen('Flip', w);
         while(1)
             % check for escape's
             [ keyIsDown, seconds, keyCode ] = KbCheck;
 
             if keyIsDown
-                if(keyCode(escKey)); 
-                    msgAndCloseEverything(['Quit on trial ' num2str(i)]);
-                    error('quit early (on %d)\n',i)
-                elseif any(keyCode(acceptableKeyPresses))
+                if(keyCode(KbName('ESCAPE'))); 
+                    msgAndCloseEverything('Early Quit!');
+                    error('quit early\n');
+                    %msgAndCloseEverything(['Quit on trial ' num2str(trialnum)]);
+                    %error('quit early (on %d)\n',trialnum)
+                elseif any(keyCode(keys))
                     break
                 end
             end     
@@ -304,48 +338,84 @@ function SlotTask(varargin)
             % flash warning if response takes too long
             
         end
-        rsptimeMS = round( (GetSecs() - startTimeSec) * 10^3);
+        
+        rsptimeMS =  (seconds - starttime)*10^-3;
     end
 
+    %% display fication cross
+    % return when fixation corss was displayed
+    % made into a function incase it gets fancier
+    function onset = fixation(w,waittilltime)
+        DrawFormattedText(w, '+','center','center',black);
+        onset= Screen('Flip', w, waittilltime);
+    end
+  
     function msgAndCloseEverything(message)
-       DrawFormattedText(w, [message '\n\n push any key but esc to quit'],...
+       Priority(0); % set priority to normal 
+       % send last message
+       DrawFormattedText(w, message,...
            'center','center',black);
        fprintf('%s\n',message)
        Screen('Flip', w);
-       waitForResponse;
-       diary off;	%stop diary
-       fclose('all');	%close data file
-       Screen('Close')
-       Screen('CloseAll');
-       PsychPortAudio('Close');
-       sca
+       waitForResponse('space','escok');
+       closeEverything()
+    end
+    function closeEverything()
+       % close all files
+       diary off;	      %stop diary
+       fclose('all');	  %close data file
+       Screen('Close');   % kill screen
+       Screen('CloseAll');% all of them
+       
+       ShowCursor;    % Retrun cursor
+       %ListenChar(0); % take keyboard input
+
+       sca;           % be sure screen is gone
+       
+       
+       % turn off sound
+       if(opts.sound)
+         PsychPortAudio('Close');
+       end
+       
+       if(subject.trialnum<subject.run_num*opts.trialsPerBlock)
+        error('quit early (on %d/%d)\n',subject.trialnum,subject.run_num*opts.trialsPerBlock)
+       end
+       
+       return
     end
   
 
 
    %% wait for a response
-function seconds = waitForResponse(varargin)
+   %% wait for a response
+    function seconds = waitForResponse(varargin)
       %% sometimes we only want a specfic set of keys
       if(~isempty(varargin))
-       usekeys=KbName(varargin{1});
+           usekeys=KbName(varargin{1});
+           % add escape to use keys if we say esc is okay
+           if(length(varargin)>1 && strcmp(varargin{2},'escok'))
+               usekeys=[usekeys KbName('ESCAPE')];
+               WaitSecs(.2); % just so we don't esc all the way through
+           end
       else
-       usekeys=acceptableKeyPresses;
+           usekeys=acceptableKeyPresses;
+
       end
       
       while(1)
           [ keyIsDown, seconds, keyCode ] = KbCheck;
           
-          if(keyIsDown && keyCode(escKey));
-              msgAndCloseEverything(['Quit on trial ' num2str(i)]);
-              error('quit early (on %d)\n',i)
-           end
+          if(keyIsDown)
+              if(any(keyCode(usekeys))) 
+                  break;
+              elseif(keyCode(KbName('ESCAPE')) ); 
+                  msgAndCloseEverything(['Quit on trial ' num2str(subject.trialnum)]);
+                  error('quit early (on %d)\n',subject.trialnum)
+              %else, we don't care--keep looping
+              end
+          end
           
-          % go on any key
-          % if(keyIsDown && any(keyCode)); break; end %any() is redudant
-
-          % specify keys
-          if(keyIsDown && any(keyCode(usekeys))); break; end 
-
           WaitSecs(.001);
       end
       Screen('Flip', w); % change the screen so we don't hold down space
@@ -354,232 +424,18 @@ function seconds = waitForResponse(varargin)
 
 
    %% score: 1/4 of the time correct
-   function [imgtype, score]=scoreTrial(trial,numcorrect,blocktype)
-      %% score should be random, win 1/4 of the time
-      score=0;
-%       if(numcorrect*4 < trial )
-%         % maybe check to see if they should win based on the number of
-%         % trials and how many correct they've already won
-%         randscore=1;
-%       else
-%         randscore=0;
-%       end
-      randscore=0;
-      if(random('unif',0,1) >= .75 )
-          randscore=1;
-      end
-      %% we might return 4 different images
+   function imgtype=scoreTrial(trial)
+      %% score is predetermined
+      %% we return one of 4 different images
+      imgtypes={'NOWIN','WIN','XXX','HASH'};
       % depends on blocktype and win/lose status
-      if(strcmp(blocktype,'WINBLOCK'))
-          if(randscore>0)
-            imgtype='WIN' ;
-            score=randscore;
-            %todo: play win sound
-          else
-            imgtype='NOWIN';
-          end
-        else
-          if(trialscore>0)
-            imgtype='HASH' ;
-            %todo: play tick noise
-          else
-            imgtype='XXX';
-          end
-            
-       end
+      % 1 NOWIN,  2 WIN, 3 XXX, 4 HASH
+      typeidx = 1 + 2.*~strcmp(subject.blocktype,'WINBLOCK') + subject.experiment(trial,4) ;
+    
+      imgtype=imgtypes{typeidx};
+    
    end
     
 
-   %% get who the subject is
-   function txtfid=getSubjInfo 
-        % skip the questions if we provide var ourself
-        subject.subj_id = input('Enter the subject ID number: ','s');
-        
-
-        filename = ['subjects/' subject.subj_id '_tc'];
-
-        % is the subject new? should we resume from existing?
-        % set t accordingly, maybe load subject structure 
-        txtfile=[filename '.txt'];
-        backup=[txtfile '.' num2str(GetSecs()) '.bak'];
-        
-        % we did something with this subject before?
-        if exist(txtfile,'file') 
-            
-            % check that we have a mat file
-            % if not, backup txt file and restart
-            if ~ exist([filename '.mat'],'file')
-                fprintf('%s.txt exists, but .mat does not!\n',filename)
-                reload= 'n'; % move txt file to backup and start from scratch
-            
-            % we have the mat file
-            % * is this resuming the previous run -- we were at the halfwaypt
-            % * if it's not obviously resuming, do we want to continue where
-            %   we left off?
-            else
-                localVar = load(filename);
-                % sanity check
-                if localVar.subject.subj_id ~= subject.subj_id
-                    error('mat file data conflicts with name!: %d != %d',...
-                        localVar.subject.subj_id, subject.subj_id);
-                end
-                
-                % we have a mat, but did we stop when we should have?
-%                 if  localVar.subject.run_num == 1 && ...
-%                    localVar.trialnum == halfwaypt;
-%                     
-%                     fprintf('incrementing run_num and assuming reload\n');
-%                     resume = 'y';
-%                     localVar.subject.run_num=2;
-%                     localVar.trialnum=halfwaypt+1; 
-%                     % need to increment trial here 
-%                     % b/c we exit before incrementing i earlier
-%                     % and we'll get stuck in a one trial loop otherwise
-%                 
-%                 % no where we expect, maybe psychtoolbox crashed
-%                 % prompt if we want to restart
-%                 else
-%                     fprintf('not auto resuming b/c run=%d and trail=%d\n\n',...
-%                         localVar.subject.run_num,localVar.trialnum)
-                     resume = lower(input('Want to load previous session (y or n)? ','s'));
-%                 end
-       
-                %
-                % if we auto incremented run_num
-                % or decided to resume
-                %   clear subject, and load from mat file
-                if strcmp(resume,'y')
-                    
-                    clear subject
-                    start=localVar.trialnum;
-                    subject=localVar.subject;
-
-                    order=localVar.order;
-                    score=localVar.score;
-                
-                % otherwise, move the existing txt file to a backup
-                % and we'll fill in the subject info below
-                else
-                    fprintf('moving %s to %s, start from top\n', txtfile,backup)
-                    movefile(txtfile,backup);
-                end
-                
-            end
-            
-         end
-        
-        %% fill out the subject struct if any part of it is still empty
-        for attribCell={'gender','age','run_num'}
-            % make a normal string
-            attrib = cell2mat(attribCell);
-
-            % check if it's already filled out
-            if  ~ismember( attrib,fields(subject) )  
-              promptText=sprintf('Enter subject''s %s: ',attrib);
-              subject.(attrib) = input(promptText,'s');
-            else
-               if ~ischar(subject.(attrib)); tmp=num2str(subject.(attrib)); else tmp=subject.(attrib); end 
-              fprintf('using old %s (%s)\n', attrib, tmp);
-            end
-        end
-
-        %% age should be a number
-        if ischar(subject.age);     subject.age    =str2double(subject.age);    end
-        if ischar(subject.run_num); subject.run_num=str2double(subject.run_num);end
-
-        if start==1 && subject.run_num==2; 
-            fprintf('WARNING: new subject, but run number 2 means start from the top\n')
-            fprintf('there is no good way to do the first part again\n')
-            start=halfwaypt+1;
-        end
-
-        %% set sex to a standard
-        if ismember(lower(subject.gender),{'male';'dude';'guy';'m';'1'} )
-            subject.gender = 'male';
-        else
-            subject.gender = 'female';
-        end
-        % print out determined sex, give user a chance to correct
-        fprintf('Subject is %s\n', subject.gender);
-
-        %% Initialize data storage and records
-        % make directoires
-        for dir={'subjects','logs'}
-         if ~ exist(dir{1},'dir'); mkdir(dir{1}); end
-        end
-        
-        % log all output of matlab
-        diaryfile = ['logs/' subject.subj_id '_' num2str(GetSecs()) '_tcdiary'];
-        diary(diaryfile);
-        
-        % log presentation,score, timing (see variable "order")
-        txtfid=fopen(txtfile,'a'); % we'll append to this..maybe
-        
-        if txtfid == -1; error('couldn''t open text file for subject'); end
-
-
-      %% START/RESUME SUBJECT INFO
-      % print the top of output file
-      if start == 1
-        fprintf(txtfid,'#Subj:\t%s\n',  subject.subj_id);
-        fprintf(txtfid,'#Run:\t%i\n',   subject.run_num); 
-        fprintf(txtfid,'#Age:\t%i\n',   subject.age);
-        fprintf(txtfid,'#Gender:\t%s\n',subject.gender);
-      end
-
-      % always print date .. even though it'll mess up reading data if put in the middle
-      fprintf(txtfid,'#%s\n',date);
-   end
-
-
-
-%% SET OPTIONS
- function opts=getopts(o)
-      
-      %% BY DEFAULT
-      opts.DEBUG=0;
-      opts.sound=1;
-      opts.screen=[1280 1024];
-      
-      %% PARSE REST
-      i=1;
-      while(i<=length(o))
-          switch o{i}
-              case {'DEBUG'}
-                  opts.DEBUG=1;
-                  opts.screen=[800 600];
-              case {'screen'}
-                  i=i+1;
-                  if isa(o{i},'char')
-                      
-                    % SlotTask('screen','mac laptop')
-                    switch o{i}
-                        case {'mac laptop'}
-                            opts.screen=[1680 1050]; %mac laptop
-                        case {'VGA'}
-                            opts.screen=[640 480]; %basic VGA
-                        case {'eyelab'}
-                            opts.screen=[1440 900]; %new eyelab room
-                        otherwise
-                            fprintf('dont know what %s is\n',o{i});
-                    end
-                    
-                  %SlotTask('screen',[800 600])
-                  else
-                    opts.screen=o{i};    
-                  end    
-                  
-              otherwise
-                  fprintf('unknown option #%d\n',i)
-                  %opts.(o{i}) = o{i+1}; 
-                  %i=i+1;
-          end
-          
-       i=i+1;    
-      
-      end
-      
-      disp(opts)
-    end
 end
 

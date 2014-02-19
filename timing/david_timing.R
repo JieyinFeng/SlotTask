@@ -331,10 +331,11 @@ for (i in 1:length(iti)) {
 # check correlations
 # check efficiency
 
-
 n_ttypes 	= 16
 n_EVs 		= 16
 
+# distrubte event types these many times
+# e.g. order=1, 1 reps 3 times, 2 2x, 3 0x, 4 2x
 ttype_counts <- vector("list", length = 4)
 ttype_counts[[1]] <- c(3,2,0,1, 2,3,1,0, 2,1,1,2, 1,2,2,1)
 ttype_counts[[2]] <- c(2,3,1,0, 3,2,0,1, 2,1,1,2, 1,2,2,1)
@@ -342,7 +343,12 @@ ttype_counts[[3]] <- c(3,2,0,1, 2,3,1,0, 1,2,2,1, 2,1,1,2)
 ttype_counts[[4]] <- c(2,3,1,0, 3,2,0,1, 1,2,2,1, 2,1,1,2)
 
 
-
+# same as
+# ttype_dist <- lapply( ttype_counts,
+#   function(x){
+#     rep(1:length(x),x)
+#   }
+#  )
 ttype_dist <- vector("list", length = 4)
 for (order in 1:4) {
 	for (i in 1:length(ttype_counts[[order]])) {
@@ -357,7 +363,7 @@ for (order in 1:4) {
 
 # eventually will want
 #  Explanitory Variables:
-#   button push, anticipation, win, lose 
+#   button push+anticipation, win, lose 
 #   -- win/loss fixed at 1/4 
 # design matrix is column for binary EV run, row for each presentation
 # button, antic., win, lose
@@ -370,6 +376,7 @@ for (order in 1:4) {
 
 
 stim_parameters <- vector("list", 5)
+# optimization starts with everything zero
 current_stim_parameters <- list("sum_efficiency"=0,
 	"eff_predictive"=0,
 	"eff_familiar"=0,
