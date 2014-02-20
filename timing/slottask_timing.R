@@ -44,20 +44,16 @@ isi_dist <- rep(seconds,counts)
 blockLength <- 20*60
 winFrac     <- 1/4
             # button+ spin+ result + reciept + fixations
-trialLength <- .5   +  .5 + .5     + 1       + mean(isi_dist)+mean(iti_dist)
+trialLength <- 1   +  .5 + .5     + 1       + mean(isi_dist)+mean(iti_dist)
 
 nTrials     <- floor(blockLength/trialLength)
 nWinTrls    <- ceiling(winFrac*nTrials)
 
 ttype_dist <- rep(1:2, c(nWinTrls, nTrials-nWinTrls) )
 
-
-
-
-
 # set defaults
 current_stim_parameters <- list(
-	"eff_winlose"=0,
+	"eff_sum"=0,
 	"design"=NULL)
 
 stim_parameters <- current_stim_parameters
@@ -66,28 +62,29 @@ stim_parameters <- current_stim_parameters
 nIterations<-500;
 
 effs<-list()
+# contrasts                 c(anticipation,win,lose)
+cntrsts <- list(
+  win_vs_lose             = c(0,1,-1),
+  anticipation_vs_outcome = c(2,-1,-1),
+  anticipation            = c(1,0,0),
+  win                     = c(0,1,0),
+  lose                    = c(0,0,1)
+)
+
 for (iterations in 1:nIterations) {
 	print(iterations)
 
    design_matrix <-   create_design_matrix(ttype_dist,isi_dist,iti_dist)
 	
 	
-	#                          c(anticipation,win,lose)
-	contrasts <- list(
-	  win_vs_lose             = c(0,1,-1),
-	  anticipation_vs_outcome = c(2,-1,-1),
-	  anticipation            = c(1,0,0),
-	  win                     = c(0,1,0),
-	  lose                    = c(0,0,1),
-	)
-	
 	# solve each contrast with the design matrix
-	efficencies <- lapply(contrasts,efficiency,design_matrix$design_matrix)
+   # efficiency is a function defined in fMRIoptimize.funcs.R
+	efficencies <- lapply(cntrsts,efficiency,design_matrix$design_matrix)
 
    # record all
-   effs[iterations] <- efficiency;
+   effs[[iterations]] <-efficencies ;
 
-   effsum<-lapply(efficiency,sum)
+   effsum<-Reduce('+', efficencies )
 	
 	
 	current_stim_parameters <- list(
@@ -106,7 +103,7 @@ for (iterations in 1:nIterations) {
 
 }
 
-plot(1:nIterations,effs); hist(effs)
+plot(1:nIterations,effs);x11(); hist(effs)
 
 plot_corr(stim_parameters$design$design_matrix)
 

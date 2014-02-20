@@ -202,22 +202,36 @@ function SlotTask(sid,blk,varargin)
      endTrial   = subject.run_num*opts.trialsPerBlock;
      subject.blockTrial(subject.run_num) = 0; %reset block trial
      
-     waittilltime=0;
+     %waittilltime=0;
      
      for trialnum=startTrial:endTrial
         subject.trialnum= trialnum;
         trialpart=1; % for each event (part) we record timing
 
-
+        %% compute all waittills based on current time
+        % todo use
+        waittill.start       = 0;
+        if(trialnum ~= startTrial)
+            ITItrialnum = 6; %length(subject.timing(1,:,1) ); % last one
+            expectedITIOnset = subject.timing(trialnum-1,ITItrialnum,1);
+            waittill.start   = expectedITIOnset + subject.experiment(trialnum-1,orderIdx('ITI'))/10^3;
+        else
+            waittill.start   = StartOfRunTime;
+        end
+        
  
-        %% Start the trial witha fruit!               
+        %% 1. Start the trial (display the slot machine)
         Screen('DrawTexture', w,  slotimg.CHOOSE);
-        trialStartTime = Screen('Flip', w,waittilltime);
-        waittilltime=trialStartTime;
+        trialStartTime = Screen('Flip', w,waittill.start-slack);
+        
+        subject.timing(trialnum,trialpart,:)= [ waittill.start; trialStartTime ];
+        trialpart=trialpart+1;
+        %waittilltime=trialStartTime;
         
         timing.start=trialStartTime-StartOfRunTime;        
         
-        %% choose a fruit, "spin", WIN/NOWIN, score
+        
+        %% 2. choose a fruit -- get RT
         % get prevchoice so we can make sure we choose differently
         if(trialnum>1), prevchoice=subject.order(trialnum-1,4);
         else            prevchoice=0; end
@@ -227,66 +241,76 @@ function SlotTask(sid,blk,varargin)
         numattempts=0;
         while(response==prevchoice)
          % todo?? capture original response time
+         % this only queries for response, w is passed to draw warning (not
+         % impletmeneteD)
          [rspnstime, response] = chooseFruit(trialStartTime,numattempts,w,acceptableKeyPresses);
+         %WaitSec(.0001) % so we dont go endlessly thorugh the loop
          numattempts=numattempts+1;
         end
         
-        % want NO delay between response time and spinner
-        % add RT to starttime
+        % we dont want to record this
+        % it'd be teh same as the spin
+        %
+        %subject.timing(trialnum,trialpart,:)= ...
+        %    [ waittill.start+rspnstime/10^3; trialStartTime+rspnstime/10^3 ];
+        %trialpart=trialpart+1;
+        %waittilltime=trialStartTime + rspnstime/10^3 - slack;
+
+      
+        %% --. compute timing for the rest of the trial
+        % response time just happpend, so now we can set the timing for the
+        % rest of the trial
         
-        subject.timing(trialnum,trialpart,:)= ...
-            [ waittilltime; trialStartTime+rspnstime/10^3 ];
         
-        waittilltime=trialStartTime + rspnstime/10^3 - slack;
-        trialpart=trialpart+1;
+        %% 3. SHOW SPIN
+        waittill.spinOnset   = waittill.start        +  rspnstime/10^3;
         
-        
-        %% SHOW SPIN
         Screen('DrawTexture', w,  slotimg.BLUR); 
-        spinOnset = Screen('Flip', w, waittilltime);
+        spinOnset = Screen('Flip', w, waittill.spinOnset -slack);
         
         %update timing
-        subject.timing(trialnum,trialpart,:)= [ waittilltime; spinOnset ];
+        subject.timing(trialnum,trialpart,:)= [ waittill.spinOnset; spinOnset ];
         trialpart=trialpart+1;
-        waittilltime = spinOnset + opts.stimtimes.Spin - slack;
         
+        % want NO delay between response time and spinner
+        % add RT to starttime
+        waittill.isiOnset    =          spinOnset   + opts.stimtimes.Spin;
+        waittill.resultOnset = waittill.isiOnset    + subject.experiment(trialnum,orderIdx('ISI'))/10^3;
+        waittill.receiptOnset= waittill.resultOnset + opts.stimtimes.Result;
+        waittill.itiOnset    = waittill.receiptOnset+ opts.stimtimes.Receipt;
         
-        
-        %% ISI
-        isiOnset = fixation(w,waittilltime);
-        subject.timing(trialnum,trialpart,:)= [ waittilltime; isiOnset ];
+         
+
+        %% 4. ISI
+        isiOnset = fixation(w,waittill.isiOnset);
+        subject.timing(trialnum,trialpart,:)= [ waittill.isiOnset; isiOnset ];
         trialpart=trialpart+1;
-        waittilltime = isiOnset + subject.experiment(trialnum,orderIdx('ISI'))/10^3 - slack;
+
         
-        
-        %% SHOW RESULTS (maybe play a sound)
+        %% 5. SHOW RESULTS (maybe play a sound)
         % get what image should be shown for this trialnum
         imgtype = scoreTrial(trialnum);
         Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
-        resultsOnset=Screen('Flip', w,waittilltime);
+        resultsOnset=Screen('Flip', w,waittill.resultOnset -slack);
         
-        subject.timing(trialnum,trialpart,:)= [ waittilltime; resultsOnset ];
+        subject.timing(trialnum,trialpart,:)= [ waittill.resultOnset; resultsOnset ];
         trialpart=trialpart+1;
         
-        waittilltime =  resultsOnset + opts.stimtimes.Result -slack;
+
         
-        %% SHOW score
+        %% 6. SHOW score
         DrawFormattedText(w, ['your total score is ' num2str(subject.experiment(trialnum,orderIdx('Score'))) '\n' ],'center','center',black);
-        receiptOnset = Screen('Flip', w,waittilltime);
+        receiptOnset = Screen('Flip', w, waittill.receiptOnset -slack);
         
-        subject.timing(trialnum,trialpart,:)= [ waittilltime; resultsOnset ];
+        subject.timing(trialnum,trialpart,:)= [ waittill.receiptOnset; receiptOnset ];
         trialpart=trialpart+1;
 
-        waittilltime =  receiptOnset + opts.stimtimes.Receipt -slack;
         
-        %% ITI
-        itiOnset = fixation(w,waittilltime);
+        %% 7. ITI
+        itiOnset = fixation(w,waittill.itiOnset-slack);
+        subject.timing(trialnum,trialpart,:)= [ waittill.itiOnset; itiOnset ];
         
-        subject.timing(trialnum,trialpart,:)= [ waittilltime; itiOnset ];
-        trialpart=trialpart+1;
-        
-        waittilltime = itiOnset + subject.experiment(trialnum,orderIdx('ITI'))/10^3 - slack;
-        
+
         %% TRIALs ENDED -- record everything
         %TODO!! What should be recorded
         % wrap up: show/save info
@@ -305,17 +329,35 @@ function SlotTask(sid,blk,varargin)
             fprintf(txtfid,'blocknum\ttrialnum\tstartime\tresponse\tresponsetime\ttrialscore\ttotal\n');
         end
         
-        fprintf(txtfid,'%s\t',subject.order(trialnum,1) );
-        fprintf(txtfid,'%i\t',subject.order(trialnum,2) );
+
+        %% save output to text
+        fprintf(txtfid,'%i\t',   subject.order(trialnum,1) );
+        fprintf(txtfid,'%i\t',   subject.order(trialnum,2) );
         fprintf(txtfid,'%.03f\t',subject.order(trialnum,3:4) );
-        fprintf(txtfid,'%d\t',subject.order(trialnum,5:6) );
-        fprintf(txtfid,'%d',subject.order(trialnum,7) );
+        fprintf(txtfid,'%d\t',   subject.order(trialnum,5:6) );
+        fprintf(txtfid,'%d',     subject.order(trialnum,7) );
         fprintf(txtfid, '\n');
         
-        % save to mat so crash can be reloaded
+        %% save to mat 
         save(subject.matfile,'trialnum','subject');
         
-        disp(subject.timing(trialnum,:,:) ) 
+        %% print timing
+        % timing:  (trial,event,[ideal actual])
+        timemat = reshape(subject.timing(trialnum,:,:),[6,2]);
+        if(trialnum==startTrial)
+            prevousend=subject.timing(trialnum,trialnum,1);
+        else
+            prevousend=subject.timing((trialnum-1),6,1) + subject.experiment(trialnum-1,orderIdx('ITI'))/10^3;
+        end
+        
+        todisp= timemat - prevousend;
+        todisp = [ todisp todisp(:,2)-todisp(:,1) ];
+        eventid = {'start','spin','isi','result','recpt','iti'};
+        fprintf(' onset\tideal  \tactual  \tdiff\n')
+        for dispidx=1:6
+          fprintf(' %s\t%.4f\t%.4f\t%.4f\n',eventid{dispidx},todisp(dispidx,:) )
+        end
+        
         
         
         
