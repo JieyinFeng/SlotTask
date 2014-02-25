@@ -1,3 +1,5 @@
+library(ggplot2)
+library(reshape2)
 source('fMRIoptimize.funcs.R')
 #######################################################
 ###########			ISI & ITI DISTRIBUTIONS
@@ -103,15 +105,13 @@ for (iterations in 1:nIterations) {
 
 }
 
-plot(1:nIterations,effs);x11(); hist(effs)
-
-plot_corr(stim_parameters$design$design_matrix)
+# melt list into a long format data frame
+df <- melt(data.frame(it=1:nIterations,lapply(names(effs[[1]]),function(x){a<-data.frame(a=unlist(lapply(effs,'[[',x)));names(a)<-x;a})),id.vars='it')
+p<-ggplot(df,aes(x=it,y=value,color=variable))+geom_point()+theme_bw()
+print(p)
+ggsave(file="",p)
+x11(); hist(effs)
+x11(); plot_corr(stim_parameters$design$design_matrix)
 
 stim_parameters$nIterations <- nIterations;
 save(stim_parameters, file="optimal_design.Rdata")
-
-
-
-
-
-

@@ -41,7 +41,7 @@
 % 20130216 - WF
 %  - use private functions from MEGClockTask
 % 20130219 - WF
-%  - use waittilltime to get percision timing on flips
+%  - use waittilltime/waittill to get percision timing on flips
 
 %% SlotTask
 function SlotTask(sid,blk,varargin)
@@ -352,7 +352,7 @@ function SlotTask(sid,blk,varargin)
         
         todisp= timemat - prevousend;
         todisp = [ todisp todisp(:,2)-todisp(:,1) ];
-        eventid = {'start','spin','isi','result','recpt','iti'};
+        eventid = {'start','pull','isi','result','recpt','iti'};
         fprintf(' onset\tideal  \tactual  \tdiff\n')
         for dispidx=1:6
           fprintf(' %s\t%.4f\t%.4f\t%.4f\n',eventid{dispidx},todisp(dispidx,:) )
