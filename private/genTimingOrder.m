@@ -32,44 +32,51 @@ function [experiment, col2idx ] = genTimingOrder(blocktypes,numtrials,times)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% exp
     if(times.(II).dist == 'exp')
-      %blocksize=3 %discritize samples
       mx=round(times.(II).max/10^3); % eg 2
       mn=round(times.(II).min/10^3); % eg 8
-      %x=mn:(mx-mn)/numtrials:mx;     % 2 to 8 in 108 peices
-      % go from vect 1:numtrials to mn:mx
-      % written as function because getting wierd vector length
-      xeq= @(x) (mx-mn)/(numtrials-1) .* ( x - 1 ) + mn;
-      x=xeq(1:numtrials)
-      y=exppdf(x,3);
+
+      % get an exp curve and
+      % scale so that the min value is 1 
+      scale=1/1000;
+      % changes number of steps, mu=2 starts at 20 reps, 3 starts at 7 reps
+      % lower means fewer number of times
+      expmu=3; % will not change actual mu ~4
+      x=mn:scale:mx;
+      y=exppdf(x,expmu);
+      y=round(y.*1/min(y));
+      p=1;
+      expdistidx=[];
+      while(sum(y(expdistidx))<numtrials)
+       p=p+1;
+       expdistidx=[1 floor(length(x)/p .* colon(1,p)  ) ];
+      end
+
+
+
+      % we added too many. undo by taking one off from each expdist repeat
+      idx=1;
+      while(sum(y(expdistidx))>numtrials)
+         % if we make it to ones that only have one, dont remove
+         if(y(expdistidx(idx))-1>1)
+            y(expdistidx(idx)) = y(expdistidx(idx)) - 1;
+         end
+         idx=idx+1;
+         if(idx>length(expdistidx))
+          idx=1;
+         end
+      end
+
       
-      freq=length(y)/sum(y)*y;
-
-      usefreq=round(sum(reshape(freq,3,length(y)/3)',2));
-      % compansate for rounding errors
-      ii=1;
-      while(sum(usefreq)<numtrials)
-         usefreq(ii)=usefreq(ii)+1;
-        ii=ii+1;
-      end
-
-      samplemat=reshape(x,3,length(x)/3)';
-      samples=mean(samplemat,2);
-      % repeat samples from each block length
-      % as many times as the (exp dist derived) frequency calls for
-      % -- should end up with 108 length expdist
+      % build repeats
       expdist=[];
-      for fi=1:length(usefreq)
-        f=usefreq(fi);
-        %expdist = [ expdist, RandSample(samplemat(fi,:),[1 f]) ];
-        expdist = [ expdist, repmat(samples(fi),1,f) ];
+      for fi=1:length(expdistidx)
+       idx=expdistidx(fi);
+       val=x(idx);
+       rep=y(idx);
+       expdist=[expdist repmat(val,1,rep) ];
       end
-
-      % debug
-      subplot(1,2,1)
-       plot(x,y); hold on;
-       scatter(expdist, ones(1,numtrials).*.05,'jitter','on','jitterAmount',.05)
-      subplot(1,2,2)
-       hist(expdist)
+      
+      hist(expdist)
 
       % for each block, shuffle the sample
       for bn=1:numblocks
@@ -77,7 +84,7 @@ function [experiment, col2idx ] = genTimingOrder(blocktypes,numtrials,times)
          b=(bn-1)*numtrials;
          IIidx=col2idx(II);
          range=(1+b):(b+numtrials);
-         experiment(range,IIidx) = randsamp(expdist,length(expdist)).*10^3;
+         experiment(range,IIidx) = randsample(expdist,length(expdist)).*10^3;
       end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%

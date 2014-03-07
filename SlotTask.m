@@ -55,15 +55,13 @@ function SlotTask(sid,blk,varargin)
   % and some debug options
   opts=getopts(varargin); 
   
-  function idx=orderIdx(name)
-    colnames={'Block','ISI','ITI','WIN','Score'};
-    idx=find(cellfun(@(x) any(strmatch(x,name)),colnames));
-  end
   
 
   %% start recording data
   % sets txtfid, subject.*, start, etc 
   subject=getSubjInfo('SlotPETMRI',subject,opts,blk);
+  % give a sorter name to the col2idx function
+  colIDX=subject.expercol2idx;
   start=(subject.run_num-1)*opts.trialsPerBlock +1;
   
   % log all output of matlab
@@ -75,8 +73,8 @@ function SlotTask(sid,blk,varargin)
   txtfid      =fopen(subject.txtfile,'a'); % append so we only have one text file but all blocks
 
   % tabulate total score for each trial
-  canreward = cellfun(@(x) strcmp(x,'WINBLOCK'), opts.blocktypes(subject.experiment(:,orderIdx('Block') ) ));
-  subject.experiment(:,orderIdx('Score')) = cumsum(subject.experiment(:,orderIdx('WIN')) .* canreward');
+  canreward = cellfun(@(x) strcmp(x,'WINBLOCK'), opts.blocktypes(subject.experiment(:,colIDX('Block') ) ));
+  subject.experiment(:,colIDX('Score')) = cumsum(subject.experiment(:,colIDX('WIN')) .* canreward');
 
 
   %% launch presentation   
@@ -91,7 +89,8 @@ function SlotTask(sid,blk,varargin)
        Screen('Preference', 'VisualDebugLevel', 3); % remove  visual logo
      end
      
-     backgroundcolor=[ 204 204 204];
+     %backgroundcolor=[ 204 204 204];
+     backgroundcolor=[ 256 256 256];
      % Find out how many screens and use smallset screen number
      % Open a new window.
      [ w, windowRect ] = Screen('OpenWindow', max(Screen('Screens')),backgroundcolor, [0 0 opts.screen] );
@@ -130,7 +129,7 @@ function SlotTask(sid,blk,varargin)
      % grab file (assumed to exist), read iamge, add alpha information
      % save in slotimg struct
      % e.g. slotimg.CHOOSE='slotimgs/CHOOSE.png'
-     for slotimgnames={'CHOOSE','BLUR','WIN','NOWIN','XXX','HASH'}
+     for slotimgnames={'CHOOSE','BLUR','WIN','NOWIN','XXX','HASH','EMPTY'}
         stimfilename=strcat('imgs/',slotimgnames{1},'.png');
         [imdata, colormap, alpha]=imread(stimfilename);
         imdata(:, :, 4) = alpha(:, :); 
@@ -212,17 +211,24 @@ function SlotTask(sid,blk,varargin)
         % todo use
         waittill.start       = 0;
         if(trialnum ~= startTrial)
-            ITItrialnum = 6; %length(subject.timing(1,:,1) ); % last one
+            % get onset of ITI by inspecting the timing structure
+            ITItrialnum = length(subject.timing(1,:,1) ); % last one, 5 or 6
             expectedITIOnset = subject.timing(trialnum-1,ITItrialnum,1);
-            waittill.start   = expectedITIOnset + subject.experiment(trialnum-1,orderIdx('ITI'))/10^3;
+            % get duration from experiment
+            ITIduration = subject.experiment(trialnum-1,colIDX('ITI'))/10^3;
+
+            waittill.start   = expectedITIOnset + ITIduration;
         else
+            ITIduration =0;
             waittill.start   = StartOfRunTime;
         end
         
- 
+        fprintf('waiting %f to next trial start \nat\t%f\nnow\t%f\n',ITIduration,waittill.start,GetSecs() );
+
+
         %% 1. Start the trial (display the slot machine)
         Screen('DrawTexture', w,  slotimg.CHOOSE);
-        trialStartTime = Screen('Flip', w,waittill.start-slack);
+        trialStartTime = Screen('Flip', w, waittill.start-slack);
         
         subject.timing(trialnum,trialpart,:)= [ waittill.start; trialStartTime ];
         trialpart=trialpart+1;
@@ -274,39 +280,55 @@ function SlotTask(sid,blk,varargin)
         
         % want NO delay between response time and spinner
         % add RT to starttime
-        waittill.isiOnset    =          spinOnset   + opts.stimtimes.Spin;
-        waittill.resultOnset = waittill.isiOnset    + subject.experiment(trialnum,orderIdx('ISI'))/10^3;
-        waittill.receiptOnset= waittill.resultOnset + opts.stimtimes.Result;
-        waittill.itiOnset    = waittill.receiptOnset+ opts.stimtimes.Receipt;
+        % then calculate the display time of all other events durning this trial
+        waittill.isiOnset    =          spinOnset   + subject.experiment(trialnum,colIDX('Spin'));
+        waittill.resultOnset = waittill.isiOnset    + subject.experiment(trialnum,colIDX('ISI'))/10^3;
+        waittill.receiptOnset= waittill.resultOnset + subject.experiment(trialnum,colIDX('Result'));
+        waittill.itiOnset    = waittill.receiptOnset+ subject.experiment(trialnum,colIDX('Receipt'));
         
          
+        % if this is not a catch trial, 
+        % -- we will have stim lengths Result + Receipt > 0
+        if( subject.experiment(trialnum,colIDX('Receipt')) + subject.experiment(trialnum,colIDX('Result')) >0)
 
-        %% 4. ISI
-        isiOnset = fixation(w,waittill.isiOnset);
-        subject.timing(trialnum,trialpart,:)= [ waittill.isiOnset; isiOnset ];
-        trialpart=trialpart+1;
+           %%% 4. ISI
+           %% this can be included or not
+           %% sets wether or not a fixation cross is seen
+           if(0)
+             isiOnset = fixation(w,waittill.isiOnset);
+             subject.timing(trialnum,trialpart,:)= [ waittill.isiOnset; isiOnset ];
+             trialpart=trialpart+1;
+           else
+             subject.timing(trialnum,trialpart,:)= [ waittill.isiOnset; GetSecs() ];
+             trialpart=trialpart+1;
+           end
 
-        
-        %% 5. SHOW RESULTS (maybe play a sound)
-        % get what image should be shown for this trialnum
-        imgtype = scoreTrial(trialnum);
-        Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
-        resultsOnset=Screen('Flip', w,waittill.resultOnset -slack);
-        
-        subject.timing(trialnum,trialpart,:)= [ waittill.resultOnset; resultsOnset ];
-        trialpart=trialpart+1;
-        
+           
+           %% 5. SHOW RESULTS (maybe play a sound)
+           % get what image should be shown for this trialnum
+           imgtype = scoreTrial(  subject.experiment( trialnum, colIDX('WIN') )  );
+           Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
+           resultsOnset=Screen('Flip', w,waittill.resultOnset -slack);
+           
+           subject.timing(trialnum,trialpart,:)= [ waittill.resultOnset; resultsOnset ];
+           trialpart=trialpart+1;
+           
 
-        
-        %% 6. SHOW score
-        DrawFormattedText(w, ['your total score is ' num2str(subject.experiment(trialnum,orderIdx('Score'))) '\n' ],'center','center',black);
-        receiptOnset = Screen('Flip', w, waittill.receiptOnset -slack);
-        
-        subject.timing(trialnum,trialpart,:)= [ waittill.receiptOnset; receiptOnset ];
-        trialpart=trialpart+1;
+           %% 6. SHOW score
+           %DrawFormattedText(w, ['your total score is ' num2str(subject.experiment(trialnum,colIDX('Score'))) '\n' ],'center','center',black);
+           scoretext = ['Your total score is ' num2str(subject.experiment(trialnum,colIDX('Score'))) ];
+           Screen('DrawTexture', w,  slotimg.EMPTY  ); 
+           % text position should be relative to center of presentaiton part of screen 
+           %  upper left corner of slot feedback is 164.0,180.5 from center (add pixels to center in this box)
+           Screen('DrawText',w,scoretext, opts.screen(1)/2-120, opts.screen(2)/2-130);
+           receiptOnset = Screen('Flip', w, waittill.receiptOnset -slack);
+           
+           subject.timing(trialnum,trialpart,:)= [ waittill.receiptOnset; receiptOnset ];
+           trialpart=trialpart+1;
+        end
 
-        
         %% 7. ITI
+        % uncomment to see fixation -- never seen anyway!
         itiOnset = fixation(w,waittill.itiOnset-slack);
         subject.timing(trialnum,trialpart,:)= [ waittill.itiOnset; itiOnset ];
         
@@ -318,7 +340,7 @@ function SlotTask(sid,blk,varargin)
         numresponse = find(response(acceptableKeyPresses))-1;
         
         %           blocknum    trialnum  startime response responsetime trialscore total
-        trialinfo = [ subject.experiment(trialnum,1) trialnum trialStartTime rspnstime numresponse subject.experiment(trialnum,[orderIdx('WIN'),orderIdx('Score')]) ];
+        trialinfo = [ subject.experiment(trialnum,1) trialnum trialStartTime rspnstime numresponse subject.experiment(trialnum,[colIDX('WIN'),colIDX('Score')]) ];
         subject.order(trialnum,:) = trialinfo;
 
         % update trial in block
@@ -345,9 +367,9 @@ function SlotTask(sid,blk,varargin)
         % timing:  (trial,event,[ideal actual])
         timemat = reshape(subject.timing(trialnum,:,:),[6,2]);
         if(trialnum==startTrial)
-            prevousend=subject.timing(trialnum,trialnum,1);
+            prevousend=subject.timing(trialnum,1,1);
         else
-            prevousend=subject.timing((trialnum-1),6,1) + subject.experiment(trialnum-1,orderIdx('ITI'))/10^3;
+            prevousend=subject.timing((trialnum-1),6,1) + subject.experiment(trialnum-1,colIDX('ITI'))/10^3;
         end
         
         todisp= timemat - prevousend;
@@ -370,7 +392,7 @@ function SlotTask(sid,blk,varargin)
      end 
 
 
-    msgAndCloseEverything(['You''ve finished this block!\nTotal score is ', num2str(subject.experiment(trialnum,orderIdx('Score'))) ,' points\n\nThanks for playing!']);
+    msgAndCloseEverything(['You''ve finished this block!\nTotal score is ', num2str(subject.experiment(trialnum,colIDX('Score'))) ,' points\n\nThanks for playing!']);
     return
 
   catch
@@ -418,7 +440,8 @@ function SlotTask(sid,blk,varargin)
     % return when fixation corss was displayed
     % made into a function incase it gets fancier
     function onset = fixation(w,waittilltime)
-        DrawFormattedText(w, '+','center','center',black);
+        %DrawFormattedText(w, '+','center','center',black);
+        Screen('DrawTexture', w,  slotimg.EMPTY ); 
         onset= Screen('Flip', w, waittilltime);
     end
   
@@ -496,15 +519,26 @@ function SlotTask(sid,blk,varargin)
 
 
    %% score: 1/4 of the time correct
-   function imgtype=scoreTrial(trial)
+   function imgtype=scoreTrial(win)
+      % win is 0 or 1
       %% score is predetermined
       %% we return one of 4 different images
       imgtypes={'NOWIN','WIN','XXX','HASH'};
       % depends on blocktype and win/lose status
       % 1 NOWIN,  2 WIN, 3 XXX, 4 HASH
-      typeidx = 1 + 2.*~strcmp(subject.blocktype,'WINBLOCK') + subject.experiment(trial,4) ;
-    
+      typeidx = 1 + 2.*~strcmp(subject.blocktype,'WINBLOCK') + win; 
       imgtype=imgtypes{typeidx};
+
+      %
+      %fprintf('%s(%s) -->  %d+%d = %d --> %s\n', ...
+      % opts.blocktypes{subject.run_num}, ...
+      % subject.blocktype, ...
+      % 2.*~strcmp(subject.blocktype,'WINBLOCK'),...
+      % win, ...
+      % typeidx,...
+      % imgtype ...
+      %);
+    
     
    end
     
