@@ -3,30 +3,40 @@
 # 20 mins: 1200 seconds
 # stims: button+spin=anticipation, win or nowin
 
-TR=1.5
-runTime=1200 # 20min*60sec/min
-nTR=800; #20*60/1.5
 
-nTrials=108   # total number of trials: 1200/1+4+1.5+4
-winRatio=.25  # win 1/4 of the time
 
-# how many iterations between how many catch trials
-nIts=50
-maxCatch=20
-nIts=50
+runTime=300                  # length of run:  5min*60sec/min (was too long, 20min*60sec/min)
+TR=1.5                       # t_r, MRI setting
+nTR=$(echo $runTime/$TR| bc) # number of TRs  # 200 TRs 
+
+avgRT=1       # slotstart display time
+resultTime=1  # receipt display time (was result+reciept)
+
+# parameters to test
+nIts=100      # how many random timings to genereate to test a condition
+maxCatch=20   # start at 0, go up by 5, to this number
+winRatio=.33  # ratio of wins to nowins (not actually set here, for loop iterated)
+meanISI=4     # time we want for ISI AND ITI (not actually set here, for loop iteratated)
 
 # clear previous run
 rm stims/*
-
-sums=sums.txt
-echo "iteration nWin nCatch sum contrast" >  $sums
+# start new record of each iteration
+#        sum root mean square of the measurement error variance for each condition (minimize)
+#        general linear test (Ward 1998 http://afni.nimh.nih.gov/pub/dist/doc/manual/3dDeconvolve.pdf pg43,82-88)
+#           normalized variance-covariance matrix (X'X)^-1, lower=more power: Pr(Z>k - \theta/(s*d) ) -- d is our meassure
+#        correlation between each regressor (minimize)
 allinfo=info.txt
-echo "it nWin nCatch RMSerror.start RMSerror.antic RMSerror.win RMSerror.nowin GLT.w-n GLT.a-w GLT.a-n GLT.a-w-n" |tee $allinfo
+echo "it nTrial nWin nCatch RMSerror.start RMSerror.antic RMSerror.win RMSerror.nowin GLT.w-n GLT.a-w GLT.a-n GLT.a-w-n r.win r.nowin" |tee $allinfo
 
 for winRatio in .25 .33 .5; do
- for nCatch in $(seq 5 5 $maxCatch); do
+for meanISI in 3 4 5; do
+ for nCatch in $(seq 0 5 $maxCatch); do
   for i in $(seq 1 $nIts); do
 
+    # total number of trials (endtime-last iti)/(RT+ISI+Result+ITI) #bc floors division
+    nTrials=$(echo "($runTime-(12-$meanISI))/($avgRT+$meanISI+$resultTime+$meanISI)"|bc) 
+
+    # total number of wins
     nWin=$(perl -MPOSIX -e "print ceil($winRatio*$nTrials)")
 
     # do catch trials take away from total nowins?
@@ -35,7 +45,8 @@ for winRatio in .25 .33 .5; do
     let nNo=$nTrials-$nWin
 
     # name for this iteration: catch_iteration: cc_iiii 
-    ii=w$(printf %02d $nWin)_c$(printf %02d $nCatch)_$(printf %04d $i)
+    #ii=w$(printf %02d $nWin)_c$(printf %02d $nCatch)_$(printf %04d $i)
+    ii=t$(printf %02d $nTrials)_w$(printf %02d $nWin)_c$(printf %02d $nCatch)_$(printf %04d $i)
 
     # make random timing using afni's python2 script
     # presentation is always 
@@ -49,13 +60,13 @@ for winRatio in .25 .33 .5; do
     python2 $(which make_random_timing.py) -num_runs 1 -run_time $runTime  \
           -tr $TR \
           -num_stim 5  \
-          -stim_labels spinW spinN spinCatch   win nowin \
-          -num_reps    $nWin $nNo $nCatch    $nWin  $nNo \
-          -stim_dur        1    1       1      1.5   1.5 \
+          -stim_labels spinW  spinN  spinCatch win         nowin \
+          -num_reps    $nWin  $nNo   $nCatch   $nWin       $nNo \
+          -stim_dur    $avgRT $avgRT $avgRT    $resultTime $resultTime  \
           -ordered_stimuli spinW win                   \
           -ordered_stimuli spinN nowin                 \
           -pre_stim_rest 0 -post_stim_rest 12           \
-          -min_rest 1                                   \
+          -min_rest 2 -max_rest 8                       \
           -show_timing_stats -prefix stims/${ii}_stimes \
           > stims/${ii}.makerandtimelog 2>&1 
           #-make_3dd_contrasts -save_3dd_cmd testwith3dd.tsch                 \
@@ -115,22 +126,18 @@ for winRatio in .25 .33 .5; do
     #    >  stims/${ii}.info
         
     # correlation between regressors
-    python2 $(which 1d_tool.py) -cormat_cutoff 0.1 -show_cormat_warnings -infile stims/${ii}_X.xmat.1D  \
+    python2 $(which 1d_tool.py) -cormat_cutoff 0 -show_cormat_warnings -infile stims/${ii}_X.xmat.1D  \
         >> stims/${ii}.info
 
-    # output the trial number, the number of catch trials
-    #        sum root mean square of the measurement error variance for each condition (lower is better)
-    #        general linear test (http://afni.nimh.nih.gov/pub/dist/doc/manual/3dDeconvolve.pdf pg43)
-    echo $ii $nWin $nCatch $(perl -lne \
-        '$sum+=$1 if m/.*h\[.*norm. std. dev. = *(\d+.\d+)/; END{print sprintf("%.05f", $sum)}' stims/${ii}.3ddlog
-        ) $(perl -lne  \
-        '$sum+=$1 if m/.*LC\[.*norm. std. dev. = *(\d+.\d+)/; END{print sprintf("%.05f", $sum)}' stims/${ii}.3ddlog
-        ) >> $sums
-
-
-    # output without collapsing/summing
-    echo $i $nWin $nCatch $(perl -ne \
-        'push @a,$2 if m/.*(h|LC)\[.*norm. std. dev. = *(\d+.\d+)/; END{print join(" ",map(sprintf("%.05f",$_), @a))}' stims/${ii}.3ddlog
+    # output the h (RMSvarErr) and LC (gen lin test) values from .3ddlog 
+    # and the correlation ($F[1]) from anticipation vs (no)win from .info
+    # space delminted
+    echo $i $nTrials $nWin $nCatch $(perl -ne \
+        'push @a,$2 if m/.*(h|LC)\[.*norm. std. dev. = *(\d+.\d+)/; END{print join(" ",map(sprintf("%.05f",$_), @a))}'\
+          stims/${ii}.3ddlog
+     ) $(perl -slane  \
+        '$a{$1}=$F[1] if m/anticipation.* (.*?win)/;END{print join(" ",@a{qw/win nowin/})}' \
+          stims/${ii}.info
      ) |tee -a $allinfo
 
     
@@ -142,4 +149,5 @@ for winRatio in .25 .33 .5; do
     #
   done
  done
+done
 done

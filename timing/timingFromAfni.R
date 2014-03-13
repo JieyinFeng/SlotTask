@@ -25,7 +25,14 @@ library(reshape2)
 #library(fmri) # for fmri.stimulus -- to gerenrate hrf
 
 tr <- 1.5
-run.sec <- 1200
+
+# event durations
+slotstartduration <- 1 # estimate RT
+receiptduration   <- 1 # how long will they see you win + total wins
+
+# only used for fmri.stimulus -- which 3ddeconvolve does better already?
+#run.sec <- 1200
+run.sec <- 200
 
 # design mat efficency
 eff <- function(c,dm) { solve( t(c) %*% solve(t(dm) %*% dm) %*% c ) }
@@ -53,8 +60,8 @@ getStimTime <- function(iteration) {
 
   # duration for everythign but slotstart is 1.5
   #TODO: make this loop over settings
-  st.df$duration<-1.5
-  st.df$duration[st.df$type=='slotstart']<-1
+  st.df$duration<-receiptduration
+  st.df$duration[st.df$type=='slotstart']<-slotstartduration
   # when does stim go off
   st.df$offset <- st.df$onset+st.df$duration
 
@@ -74,18 +81,63 @@ writeAnticipation <- function(st.df,iteration) {
   sink()
 }
 # we want timing for this set of stim times in a .mat 
-getMAT <- function(st.df) {
+genMAT <- function(st.df,name) {
  # ISI's are the actually important bit 
+ #order is 'Block','Spin','ISI','Result','Receipt','ITI','WIN','Score'
+ # where 
+ #  Block   implemented in matlab
+ #          the same for e.g. the 36 trials in this block
+ #  Spin    how long the spin picture is displayed
+ #  Result  how long result is displayed
+ #  ITI     how long before the next trial
+ #  Score   if this is win, score is 1, otherwise 0
+ #
+ #  TODO: REMOVE 
+ #  ISI     Spin is ISI
+ #  Receipt Result will tell score if needed
+ startinds <- which(st.df$type=='slotstart')
+
+ timing=matrix(0,length(startinds),4)
+ mati=1;
+ for(si in startinds ){ 
+   starttime <- st.df$onset[si]    # ignored, we assumed avgRT -- person will not respond same
+   startlen  <- st.df$duration[si] # ignored, for the same reason
+   
+   spinlen   <- st.df$nextwait[si] # time between button push and score
+
+   # and if this is not a catch trial
+   if(nrow(st.df)>si && st.df$type[si+1] != 'slotstart'){
+      resultlen <- st.df$duration[si+1]    # should be constant (1s)
+      ITIlen    <- st.df$nextwait[si+1]    
+      score     <- ifelse(st.df$type[si+1]=='win',1,0)
+
+   # otherwise, zero everything
+   }else{
+      resultlen <- 0
+      ITIlen    <- 0 
+      score     <- 0
+   }
+   
+   timing[mati,]=cbind(spinlen,resultlen,ITIlen,score)
+   mati<-mati+1
+ }
+ 
+ return(timing)
+ require(R.matlab)
+ writeMat(con=file.path('mats',paste0(name,".mat")), block=timing)
 }
 
 visTiming <- function(st.df) {
+ require(gridExtra)
  # also see repeats
- tail(sort(rle(st.df$type[st.df$type!='slotstart'])$lengths))
+ print(tail(sort(rle(st.df$type[st.df$type!='slotstart'])$lengths)))
+ print(summary(st.df$nextwait))
 
- ggplot(st.df,aes(x=onset,y=type,color=type))+geom_segment(aes(xend=offset,yend=type))+theme_bw()+ scale_x_continuous(limits=c(0,200))
- x11()
- # see exp dist of isi (and iti)
- hist(st.df$nextwait)
+ # ggplot to see actual order
+ # hist to see exp dist of isi (and iti)  (with last isi (0.0) removed)
+ ptim <- ggplot(st.df,aes(x=onset,y=type,color=type))+geom_segment(aes(xend=offset,yend=type))+theme_bw() #+ scale_x_continuous(limits=c(0,200)) )
+ phist <- qplot(geom='histogram',x=st.df$nextwait[-nrow(st.df)],binwidth=1)+theme_bw() + scale_x_continuous(limits=c(1,9),breaks=c(2:8))
+ grid.arrange(phist,ptim,nrow=2)
 }
 
 vis3DDout <- function() {
@@ -96,7 +148,8 @@ vis3DDout <- function() {
  # add combined catch-win id
  a.m$cw <- paste0(a.m$nCatch,'c',a.m$nWin,'w')
 
- pp <- ggplot(a.m,aes(x=variable,y=value,color=cw))+geom_boxplot()+theme_bw()
+ #pp <- ggplot(a.m,aes(x=variable,y=value,color=cw))+geom_boxplot()+theme_bw()
+ pp <- ggplot(a.m,aes(x=variable,y=value,color=cw))+geom_jitter(height=0,alpha=.4) + geom_violin()+theme_bw()
 
 
  #p<-ggplot(a.m,aes(x=value,linetype=cw,fill=cw ) ) + geom_density(alpha=.7) +theme_bw()+theme(legend.position="none")
