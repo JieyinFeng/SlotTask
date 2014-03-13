@@ -1,0 +1,28 @@
+This directory contains testing and final results of timing optimization for event related fMRI
+
+want to get ISI1 and ISI2 in
+
+1) slotstart + buton push ( modeled as 1s avg)
+2) slotspin (ISI1)
+--- catch trial stop here ---
+3) result/reciept
+4) ITI (ISI2)
+
+PIPELINE
+
+1) genStimsWithAfni.bash  -- generates many stims using make_random_timing.py 
+          |                  tests with 3dDeconvolve and 1d_tool.py (cor_mat)
+          |
+          \- info.txt          -- table of experiment metrics varrying 
+                                  over parameter and iteration
+  
+
+2) timingFromAfni.R       -- provides functions for analyzing 
+                             and ultimately saving as mat file
+
+
+PREVIOUS ATTEMPTS
+ - optseq2, could not find how to set focb (first order counter balence) so spin necessarily follows start
+
+ - fMRIoptimize.funcs.R (from D. Paulsen), 3dDeconvolve models HRF easier (e.g. dmBlock) than fmri.stimulus
+   consitant with actual analysis

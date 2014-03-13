@@ -81,7 +81,7 @@ writeAnticipation <- function(st.df,iteration) {
   sink()
 }
 # we want timing for this set of stim times in a .mat 
-genMAT <- function(st.df,name) {
+genMAT <- function(toprow=getTopTen()[1,],name='itname') {
  # ISI's are the actually important bit 
  #order is 'Block','Spin','ISI','Result','Receipt','ITI','WIN','Score'
  # where 
@@ -95,6 +95,15 @@ genMAT <- function(st.df,name) {
  #  TODO: REMOVE 
  #  ISI     Spin is ISI
  #  Receipt Result will tell score if needed
+
+ print(toprow)
+
+ stimtimename<-do.call(sprintf,c('t%02d_w%02d_c%02d_%04d',as.list(toprow[1,c('nTrial','nWin','nCatch','it')])))
+ st.df<-getStimTime(stimtimename)
+ if(name=='itname'){ name <- sprintf('GLT%.04f_%s',toprow$GLTsum,stimtimename) }
+
+ # get all the times by reading in each 1D file made by make_random_stimes.py
+
  startinds <- which(st.df$type=='slotstart')
 
  timing=matrix(0,length(startinds),4)
@@ -122,9 +131,9 @@ genMAT <- function(st.df,name) {
    mati<-mati+1
  }
  
- return(timing)
  require(R.matlab)
  writeMat(con=file.path('mats',paste0(name,".mat")), block=timing)
+ return(timing)
 }
 
 visTiming <- function(st.df) {
@@ -140,16 +149,77 @@ visTiming <- function(st.df) {
  grid.arrange(phist,ptim,nrow=2)
 }
 
-vis3DDout <- function() {
- # read in table input that we generated from 3ddeconvolve (and perl)
- a<-read.table(sep=" ",'info.txt',header=T)
- # put each iteration type (num wins and num catches) into long format
- a.m <- melt(a,id.vars=c('it','nWin','nCatch'))
- # add combined catch-win id
- a.m$cw <- paste0(a.m$nCatch,'c',a.m$nWin,'w')
+######## after things have been produced
 
- #pp <- ggplot(a.m,aes(x=variable,y=value,color=cw))+geom_boxplot()+theme_bw()
- pp <- ggplot(a.m,aes(x=variable,y=value,color=cw))+geom_jitter(height=0,alpha=.4) + geom_violin()+theme_bw()
+get3DDout <-function(infofile="info.txt") {
+ require(reshape2)
+ # read in table input that we generated from 3ddeconvolve (and perl)
+ a<-read.table(sep=" ",infofile,header=T)
+ # put each iteration type (num wins and num catches) into long format
+ a.m <- melt(a,id.vars=c('it','nTrial','nWin','nCatch'))
+
+ # sum up the variables
+ a$GLTsum <- rowSums(a[,grep('^GLT\\.',names(a))])
+ a$RMSsum <- rowSums(a[,grep('^RMSerror\\.',names(a))])
+ a$rSum   <- rowSums(abs(a[,grep('^r\\.',names(a))]))
+
+ return(a)
+}
+
+getTopTen <- function(a=get3DDout()){
+ # get the top ten design efficencies
+ toptenGLT <- a[sort(a$GLTsum,index.return=T)$ix[1:8],]
+ return(toptenGLT)
+}
+
+
+vis3DDout <- function(a=get3DDout()) {
+ 
+ require(plyr)
+ require(ggplot2)
+ require(gridExtra)
+
+ 
+ ## see that the means of each type are not too different (no one value is making the model look too good/bad)
+ #  excpet anticipation - spin + win , which is what we really care about anyway
+ colmeans<- sapply(c('RMSerror','GLT','r'),function(x){colMeans(a[,grep(paste0('^',x,'\\.'),names(a))])} )
+ print(colmeans)
+
+ ###
+ #
+ # get average and min value for r, GLT, and RMS of each trial-catch-win tripplet
+ #
+ ###
+ idvars <- grep('^n',names(a),value=T) #nCatch, nTrial, nWin
+
+ a.davg <- melt(id.vars=idvars, ddply(a,idvars,function(x){data.frame(r=mean(x$rSum),GLT=mean(x$GLTsum),RMS=mean(x$RMSsum))}))
+ a.dmin <- melt(id.vars=idvars, ddply(a,idvars,function(x){data.frame(r=min(x$rSum),GLT=min(x$GLTsum),RMS=min(x$RMSsum))}))
+ 
+ paramlist=list(
+    list(y="value",x="nWin",color="as.factor(nCatch)",size="as.factor(nTrial)"),
+    list(y="value",x="nCatch",color="as.factor(nTrial)",size="as.factor(nWin)"),
+    list(y="value",x="nTrial",color="as.factor(nCatch)",size="as.factor(nWin)")
+    )
+ for(pl in paramlist) {
+    p <- ggplot(a.davg,do.call(aes_string,pl)) + facet_wrap(~variable) + scale_color_brewer(palette='Set1') + theme_bw()
+    
+    p.avg <- p+geom_jitter(position = position_jitter(height = 0,width=.5), alpha=.9)  +
+              geom_line(alpha=.1) +
+              ggtitle('mean value')
+    p.min <- p+geom_jitter(position = position_jitter(height = 0,width=.5), alpha=.9, data=a.dmin) + 
+              geom_line(alpha=.1,data=a.dmin) +
+              ggtitle('min value')
+    
+     
+    pdf( file.path('imgs',paste0('by_',pl$x,'.pdf') ) )
+     grid.arrange(p.min,p.avg,nrow=2)
+    dev.off()
+    #ggsave(file=file.path('imgs',paste0('by_',pl$x,'.pdf') ),pp)
+    #print(pp)
+    #cat('waiting on you\n')
+    #readline()
+ }
+
 
 
  #p<-ggplot(a.m,aes(x=value,linetype=cw,fill=cw ) ) + geom_density(alpha=.7) +theme_bw()+theme(legend.position="none")
@@ -158,7 +228,7 @@ vis3DDout <- function() {
  #require(gridExtra)
  #pp <- grid.arrange(p+facet_grid(~variable,scale="free_x"),p+facet_grid(~cw),nrow=2)
 
- return(pp)
+ #return(colmeans)
 }
 
 getEffs <- function(st.df){
