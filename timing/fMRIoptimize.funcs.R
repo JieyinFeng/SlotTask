@@ -1,6 +1,6 @@
 # FROM DAVID PAULSEN 2013-10-26
 # Optimize jittering for fMRI event related design
-# see doi:10.1016/j.neuroimage.2006.09.019
+# see smith 2007: doi:10.1016/j.neuroimage.2006.09.019
 
 library(fmri)
 #library(neuRosim)

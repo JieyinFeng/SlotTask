@@ -74,6 +74,10 @@ function SlotTask(sid,blk,varargin)
 
   % tabulate total score for each trial
   canreward = cellfun(@(x) strcmp(x,'WINBLOCK'), opts.blocktypes(subject.experiment(:,colIDX('Block') ) ));
+
+  disp([ length(canreward) ...
+  length(subject.experiment(:,colIDX('WIN')) ])
+
   subject.experiment(:,colIDX('Score')) = cumsum(subject.experiment(:,colIDX('WIN')) .* canreward');
 
 
@@ -254,13 +258,6 @@ function SlotTask(sid,blk,varargin)
          numattempts=numattempts+1;
         end
         
-        % we dont want to record this
-        % it'd be teh same as the spin
-        %
-        %subject.timing(trialnum,trialpart,:)= ...
-        %    [ waittill.start+rspnstime/10^3; trialStartTime+rspnstime/10^3 ];
-        %trialpart=trialpart+1;
-        %waittilltime=trialStartTime + rspnstime/10^3 - slack;
 
       
         %% --. compute timing for the rest of the trial
@@ -268,7 +265,7 @@ function SlotTask(sid,blk,varargin)
         % rest of the trial
         
         
-        %% 3. SHOW SPIN
+        %% 3. SHOW SPIN (AKA ISI)
         waittill.spinOnset   = waittill.start        +  rspnstime/10^3;
         
         Screen('DrawTexture', w,  slotimg.BLUR); 
@@ -281,30 +278,19 @@ function SlotTask(sid,blk,varargin)
         % want NO delay between response time and spinner
         % add RT to starttime
         % then calculate the display time of all other events durning this trial
-        waittill.isiOnset    =          spinOnset   + subject.experiment(trialnum,colIDX('Spin'));
-        waittill.resultOnset = waittill.isiOnset    + subject.experiment(trialnum,colIDX('ISI'))/10^3;
-        waittill.receiptOnset= waittill.resultOnset + subject.experiment(trialnum,colIDX('Result'));
-        waittill.itiOnset    = waittill.receiptOnset+ subject.experiment(trialnum,colIDX('Receipt'));
+        % see priveate/getTimingOrder.m
+        %
+        %'Block','Spin','Result','ITI','WIN'
+        waittill.resultOnset = waittill.spinOnset    + subject.experiment(trialnum,colIDX('Spin'));
+        waittill.itiOnset    = waittill.itiOnset    + subject.experiment(trialnum,colIDX('Result'));
         
          
         % if this is not a catch trial, 
         % -- we will have stim lengths Result + Receipt > 0
-        if( subject.experiment(trialnum,colIDX('Receipt')) + subject.experiment(trialnum,colIDX('Result')) >0)
-
-           %%% 4. ISI
-           %% this can be included or not
-           %% sets wether or not a fixation cross is seen
-           if(0)
-             isiOnset = fixation(w,waittill.isiOnset);
-             subject.timing(trialnum,trialpart,:)= [ waittill.isiOnset; isiOnset ];
-             trialpart=trialpart+1;
-           else
-             subject.timing(trialnum,trialpart,:)= [ waittill.isiOnset; GetSecs() ];
-             trialpart=trialpart+1;
-           end
+        if( subject.experiment(trialnum,colIDX('Result')) >0)
 
            
-           %% 5. SHOW RESULTS (maybe play a sound)
+           %% 4. SHOW RESULTS (maybe play a sound)
            % get what image should be shown for this trialnum
            imgtype = scoreTrial(  subject.experiment( trialnum, colIDX('WIN') )  );
            Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
@@ -313,21 +299,9 @@ function SlotTask(sid,blk,varargin)
            subject.timing(trialnum,trialpart,:)= [ waittill.resultOnset; resultsOnset ];
            trialpart=trialpart+1;
            
-
-           %% 6. SHOW score
-           %DrawFormattedText(w, ['your total score is ' num2str(subject.experiment(trialnum,colIDX('Score'))) '\n' ],'center','center',black);
-           scoretext = ['Your total score is ' num2str(subject.experiment(trialnum,colIDX('Score'))) ];
-           Screen('DrawTexture', w,  slotimg.EMPTY  ); 
-           % text position should be relative to center of presentaiton part of screen 
-           %  upper left corner of slot feedback is 164.0,180.5 from center (add pixels to center in this box)
-           Screen('DrawText',w,scoretext, opts.screen(1)/2-120, opts.screen(2)/2-130);
-           receiptOnset = Screen('Flip', w, waittill.receiptOnset -slack);
-           
-           subject.timing(trialnum,trialpart,:)= [ waittill.receiptOnset; receiptOnset ];
-           trialpart=trialpart+1;
         end
 
-        %% 7. ITI
+        %% 5. ITI
         % uncomment to see fixation -- never seen anyway!
         itiOnset = fixation(w,waittill.itiOnset-slack);
         subject.timing(trialnum,trialpart,:)= [ waittill.itiOnset; itiOnset ];
