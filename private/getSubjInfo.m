@@ -32,34 +32,22 @@ function subject=getSubjInfo(taskname,subject,opts,blk)
   subject.matfile=[filename '.mat']; % export where we are saving things
   
   
-  % is the subject new? should we resume from existing?
-  % set t accordingly, maybe load subject structure
-  subject.txtfile=[filename '.txt'];
-  backup=[subject.txtfile '.' num2str(GetSecs()) '.bak'];
-  
+
   % we did something with this subject before?
-  if exist(subject.txtfile,'file') || exist(subject.matfile,'file')
+  if exist(subject.matfile,'file')
       % check that we have a matching mat file
       % if not, backup txt file and restart
-      if ~ exist(subject.matfile,'file')
-          fprintf('%s exists, but (%s) does not!\n', subject.txtfile,subject.matfile)
-          fprintf('moving %s to %s, start from top\n', subject.txtfile, backup)
-          movefile(subject.txtfile, backup);
-      else
-          localVar = load(subject.matfile);
-          
-          % sanity check
-          if localVar.subject.subj_id ~= subject.subj_id
-              error('mat file data conflicts with name!: %d != %d',...
-                  localVar.subject.subj_id, subject.subj_id);
-          end
-          
-          %load previous information: place below above check to preserve user input
-          subject=localVar.subject;
-          % subject has order, experiment, i, score
-          
-          
+      localVar = load(subject.matfile);
+
+      % sanity check
+      if localVar.subject.subj_id ~= subject.subj_id
+          error('mat file data conflicts with name!: %d != %d',...
+              localVar.subject.subj_id, subject.subj_id);
       end
+
+      %load previous information: place below above check to preserve user input
+      subject=localVar.subject;
+      % subject has order, experiment, i, score
   end
   
 
@@ -141,6 +129,17 @@ function subject=getSubjInfo(taskname,subject,opts,blk)
  %% initialize timing -- TODO
  % subject.timing(trialnum,trialpart,:)
  
+ %% deal with text file
+   % is the subject new? should we resume from existing?
+  % set t accordingly, maybe load subject structure
+  subject.txtfile=[filename  '_' num2str(subject.run_num) '_' subject.blocktype '.txt'];
+  if exist(subject.txtfile,'file')
+          backup=[subject.txtfile '.' num2str(GetSecs()) '.bak'];
+          fprintf('%s exists already exists\n', subject.txtfile)
+          fprintf('moving %s to %s\n', subject.txtfile, backup)
+          movefile(subject.txtfile, backup);
+  end
+ 
  %% show what we hve
- subject  
+ disp(subject)
 end

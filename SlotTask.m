@@ -55,7 +55,11 @@ function SlotTask(sid,blk,varargin)
   % and some debug options
   opts=getopts(varargin); 
   
+  % useful anonymous function for '()'
+  %paren = @(x, varargin) x(varargin{:});
   
+  % so PTB timing isn't truncated
+  format longG; 
 
   %% start recording data
   % sets txtfid, subject.*, start, etc 
@@ -64,9 +68,9 @@ function SlotTask(sid,blk,varargin)
   colIDX=subject.expercol2idx;
 
   % get trial indexs for this run (block)
-  thisBlockIdx = find(subject.experiment(:,subject.expercol2idx('Block'))==subject.run_num)
+  thisBlockIdx = find(subject.experiment(:,subject.expercol2idx('Block'))==subject.run_num);
   %nTrials    = length(thisBlockIdx);
-  startTrial = thisBlockIdx(1);;
+  startTrial = thisBlockIdx(1);
   endTrial   = thisBlockIdx(end);
   
   % log all output of matlab
@@ -79,9 +83,6 @@ function SlotTask(sid,blk,varargin)
 
   % tabulate total score for each trial
   canreward = cellfun(@(x) strcmp(x,'WINBLOCK'), opts.blocktypes(subject.experiment(:,colIDX('Block') ) ));
-
-  disp([ length(canreward) ...
-  length(subject.experiment(:,colIDX('WIN'))) ])
 
   subject.experiment(:,colIDX('Score')) = cumsum(subject.experiment(:,colIDX('WIN')) .* canreward');
 
@@ -205,6 +206,7 @@ function SlotTask(sid,blk,varargin)
 
      % start when we get ^ for scanner
      StartOfRunTime = waitForResponse('6^');
+     subject.trlTpts.StartOfRunTime(subject.run_num)=StartOfRunTime;
      
   
    
@@ -222,34 +224,45 @@ function SlotTask(sid,blk,varargin)
 
         %% compute all waittills based on current time
         % todo use
-        waittill.start       = 0;
+        idealtime.start       = 0;
         if(trialnum ~= startTrial)
             % get onset of ITI by inspecting the timing structure
             ITItrialnum = length(subject.timing(1,:,1) ); % last one, 5 or 6
             expectedITIOnset = subject.timing(trialnum-1,ITItrialnum,1);
             % get duration from experiment
-            ITIduration = subject.experiment(trialnum-1,colIDX('ITI'))/10^3;
+            
+            % if catch trial,  ITI comes from spin length
+            % not ITI column
+            if(subject.experiment(trialnum-1,colIDX('Result')) == 0 )
+                ITIfield='Spin';
+            else
+                ITIfield='ITI';
+            end
+            
+            ITIduration = subject.experiment(trialnum-1,colIDX(ITIfield));
 
-            waittill.start   = expectedITIOnset + ITIduration;
+            idealtime.start   = expectedITIOnset + ITIduration;
         else
             ITIduration =0;
-            waittill.start   = StartOfRunTime;
+            idealtime.start   = StartOfRunTime;
         end
         
-        fprintf('waiting %f to next trial start \n\tat\t%f\n\tnow\t%f\n',ITIduration,waittill.start,GetSecs() );
+        if(opts.DEBUG)
+          fprintf('waiting %f to next trial start \n\tat\t%f\n\tnow\t%f\n',ITIduration,idealtime.start,GetSecs() );
+        end
 
 
         %% 1. Start the trial (display the slot machine)
         Screen('DrawTexture', w,  slotimg.CHOOSE);
-        [~,trialStartTime] = Screen('Flip', w, waittill.start-slack);
+        [~,trialStartTime] = Screen('Flip', w, idealtime.start-slack);
         % this will eventaully go to afni's 3dDeconvolve
-        subject.stimtime(trialnum).start=trialStartTime;
+        subject.stimtime(trialnum).start=trialStartTime - StartOfRunTime;
         
-        subject.timing(trialnum,trialpart,:)= [ waittill.start; trialStartTime ];
+        subject.timing(trialnum,trialpart,:)= [ idealtime.start; trialStartTime ];
         trialpart=trialpart+1;
         %waittilltime=trialStartTime;
         
-        timing.start=trialStartTime-StartOfRunTime;        
+        subject.trlTpts.start(trialnum)=trialStartTime;
         
         
         %% 2. choose a fruit -- get RT
@@ -264,14 +277,15 @@ function SlotTask(sid,blk,varargin)
          % todo?? capture original response time
          % this only queries for response, w is passed to draw warning (not
          % impletmeneteD)
-         [rspnstime, response] = chooseFruit(trialStartTime,numattempts,w,acceptableKeyPresses);
+         [timeAtResponse, response] = chooseFruit(trialStartTime,numattempts,w,acceptableKeyPresses);
+         rspnstime = timeAtResponse - trialStartTime;
          numattempts=numattempts+1;
 
          %WaitSec(.0001) % so we dont go endlessly thorugh the loop
         end
+        fprintf('response time %f\n',rspnstime);
         
-        
-        subject.stimtime(trialnum).response=rspnstime;
+        subject.stimtime(trialnum).response=timeAtResponse - StartOfRunTime;
         
 
       
@@ -282,20 +296,22 @@ function SlotTask(sid,blk,varargin)
         % add RT to starttime
         % then calculate the display time of all other events durning this trial
         % see priveate/getTimingOrder.m
-
-        waittill.spinOnset   = waittill.start        +  rspnstime/10^3;
-        waittill.resultOnset = waittill.spinOnset    + subject.experiment(trialnum,colIDX('Spin'));
-        waittill.itiOnset    = waittill.resultOnset  + subject.experiment(trialnum,colIDX('Result'));
+        offsets = [ timeAtResponse subject.experiment(trialnum,[ colIDX('Spin') colIDX('Result')]) ];
+        trlTimes= cumsum( offsets );
         
+        idealtime.spinOnset   = trlTimes(1);
+        idealtime.resultOnset = trlTimes(2);
+        idealtime.itiOnset    = trlTimes(3);
+        % struct2array(idealtimes) == [ idealtimes.start trlTimes ]
         
         %% 3. SHOW SPIN (AKA ISI)
         
         Screen('DrawTexture', w,  slotimg.BLUR); 
-        [~,spinOnset ] = Screen('Flip', w, waittill.spinOnset -slack);
+        [~,spinOnset ] = Screen('Flip', w, idealtime.spinOnset -slack);
         
         %update timing
-        subject.stimtime(trialnum).spin=spinOnset;
-        subject.timing(trialnum,trialpart,:)= [ waittill.spinOnset; spinOnset ];
+        subject.stimtime(trialnum).spin=spinOnset - StartOfRunTime;
+        subject.timing(trialnum,trialpart,:)= [ idealtime.spinOnset; spinOnset ];
         trialpart=trialpart+1;
         
         %% End (if catch) or Results + ITI 
@@ -308,12 +324,12 @@ function SlotTask(sid,blk,varargin)
            % get what image should be shown for this trialnum
            imgtype = scoreTrial(  subject.experiment( trialnum, colIDX('WIN') )  );
            Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
-           [~,resultsOnset]=Screen('Flip', w,waittill.resultOnset -slack);
-           subject.stimtime(trialnum).results=resultsOnset;
+           [~,resultsOnset]=Screen('Flip', w,idealtime.resultOnset -slack);
+           subject.stimtime(trialnum).(imgtype)=resultsOnset - StartOfRunTime;
 
            %% 5. ITI  -- show empty slot after WIN/NOWIN
-           itiOnset = fixation(w,waittill.itiOnset-slack);
-           subject.stimtime(trialnum).ITI=itiOnset;
+           itiOnset = fixation(w,idealtime.itiOnset-slack);
+           subject.stimtime(trialnum).ITI=itiOnset - StartOfRunTime;
            
         else
            fprintf('catch trial!\n')
@@ -322,9 +338,9 @@ function SlotTask(sid,blk,varargin)
         end
 
         % record timings for result and iti (0's if didnt happen)
-        subject.timing(trialnum,trialpart,:)= [ waittill.resultOnset; resultsOnset ];
+        subject.timing(trialnum,trialpart,:)= [ idealtime.resultOnset; resultsOnset ];
         trialpart=trialpart+1;
-        subject.timing(trialnum,trialpart,:)= [ waittill.itiOnset; itiOnset ];
+        subject.timing(trialnum,trialpart,:)= [ idealtime.itiOnset; itiOnset ];
         
 
         %% TRIALs ENDED -- record everything
@@ -378,14 +394,15 @@ function SlotTask(sid,blk,varargin)
         
         
         %% debug, show time of this trial
+        subject.trlTpts.end(trialnum)= GetSecs();
         if(opts.DEBUG)        
-          timing.end= GetSecs();
-          fprintf('%d: (%f,%f) %f\n',trialnum, timing.start, timing.end,timing.end-timing.start);
+          startend=[subject.trlTpts.start(trialnum), subject.trlTpts.end(trialnum)];
+          fprintf('%d -- %f to %f; dur %f\n',trialnum, startend - subject.trlTpts.StartOfRunTime(subject.run_num),diff(fliplr(startend)));
         end
 
      end 
 
-
+    subject.trlTpts.EndOfRunTime(subject.run_num)=GetSecs();
     msgAndCloseEverything(['You''ve finished this block!\nTotal score is ', num2str(subject.experiment(trialnum,colIDX('Score'))) ,' points\n\nThanks for playing!']);
     return
 
@@ -400,7 +417,7 @@ function SlotTask(sid,blk,varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                           support functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    function [rsptimeMS, whichKeyCode ]=chooseFruit(starttime,numattempts,w,keys)
+    function [timeAtRspns, whichKeyCode ]=chooseFruit(starttime,numattempts,w,keys)
         % display screen
         if(numattempts>0)
             % draw warning
@@ -409,9 +426,10 @@ function SlotTask(sid,blk,varargin)
         %%draw 
         while(1)
             % check for escape's
-            [ keyIsDown, seconds, keyCode ] = KbCheck;
-
-            if keyIsDown
+            [ keyIsDown, timeAtRspns, keyCode ] = KbCheck;
+            
+            % pushed a button and was not accidental (>6ms)
+            if keyIsDown && timeAtRspns-starttime> .06
                 if(keyCode(KbName('ESCAPE'))); 
                     msgAndCloseEverything('Early Quit!');
                     error('quit early\n');
@@ -425,10 +443,11 @@ function SlotTask(sid,blk,varargin)
             
             % TODO:
             % flash warning if response takes too long
+            % if(GetSecs()-starttime>4)
             
         end
         
-        rsptimeMS =  (seconds - starttime)*10^-3;
+        %timeAtRspns =  (seconds - starttime)*10^-3;
     end
 
     %% display fication cross
