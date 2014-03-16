@@ -4,10 +4,7 @@ function subject=getSubjInfo(taskname,subject,opts,blk)
   % which puts experiment into the subject structure
   
   
-  % initialize the order of events
-  % this will be filled with "experiment" and behavioral actions/results (e.g. RT, ev, score)
   totalBlocks = length(opts.blocktypes);
-  subject.order=zeros(opts.trialsPerBlock*totalBlocks,7);
   
   
   %whether to prompt user for run to execute
@@ -72,6 +69,10 @@ function subject=getSubjInfo(taskname,subject,opts,blk)
   if ~ismember('experiment',fields(subject)), 
     %[subject.experiment, subject.expercol2idx ] = genTimingOrder(opts.blocktypes,opts.trialsPerBlock,opts.stimtimes);
     [subject.experiment, subject.expercol2idx ] = getTimingOrder(opts.blocktypes);
+
+    % initialize the order of events
+    % this will be filled with "experiment" and behavioral actions/results (e.g. RT, ev, score)
+    subject.order=zeros(size(subject.experiment,1),7);
   end
 
   %if new participant, assume run1 start and totally empt block Trials
@@ -122,13 +123,14 @@ function subject=getSubjInfo(taskname,subject,opts,blk)
 
 
   %% deal with run_number
-  subject.run_num = chooseRun(blk,subject.blockTrial,opts.trialsPerBlock);
+  % blk we want, list of what we've done, the block order
+  subject.run_num = chooseRun(blk,subject.blockTrial,subject.experiment(:,subject.expercol2idx('Block')));
   if(subject.run_num==0)
     error('no good block, not running')
   end
 
   % reset block list and score -- remove trials on the block we are going to try
-  subject.order = resetOrder(subject.order,subject.run_num,opts.trialsPerBlock);
+  subject.order = resetOrder(subject.order,subject.run_num);
   
  
  %% set block type

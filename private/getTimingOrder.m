@@ -7,7 +7,7 @@ function [experiment, col2idx ] = getTimingOrder(blocktypes)
 
   % function to get the index of a trial component within the experiement matrix
   %i.e. label columns :: translates column name into index
-  col2idx = @(name) find(cellfun(@(x) any(strmatch(x,name)),{'Block','Spin','Result','ITI','WIN'}));
+  col2idx = @(name) find(cellfun(@(x) any(strmatch(x,name)),{'Block','Spin','Result','ITI','WIN','Score'}));
   % because winblocks are set in options (getOpts)
   % Score column added later in SlotTask.m via
   %   canreward = cellfun(@(x) strcmp(x,'WINBLOCK'), opts.blocktypes(subject.experiment(:,colIDX('Block') ) ));
@@ -26,7 +26,7 @@ function [experiment, col2idx ] = getTimingOrder(blocktypes)
 
   % quick fix if we dont have enough mat files
   if(length(matfileidx)<numblocks)
-   matfileidx=RandSample(matfileidx,[1,numblocks])
+   matfileidx=RandSample(matfileidx,[1 numblocks]);
    warning('too few mat files in timing/mats, randomly sampled with what we have')
   end
 
@@ -36,7 +36,7 @@ function [experiment, col2idx ] = getTimingOrder(blocktypes)
   mfiorder=randsample(matfileidx,numblocks)
 
   for bn=1:numblocks
-    matfile=files{mfiorder(bn)}
+    matfile=files{mfiorder(bn)};
 
     % tmpexp.block is c(spinlen,resultlen,ITIlen,score), see timing/timingFromAfni.R
     tmpexp = load(fullfile('timing','mats', matfile  ));

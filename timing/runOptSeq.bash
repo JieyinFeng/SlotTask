@@ -8,6 +8,18 @@
 # 1/4 should be win trials (27) 3/4 are lose (81 trials)
 #
 od=optseqout
+# first order counter balance matrix
+focb=focb.mat
+#-- order of events
+#       spin win lose
+# spin   0   .25  .75
+# win    1    0    0
+# lose   1    0    0
+echo   "0   .25  .75" > $focb
+echo   "0   .25  .75" >> $focb
+echo   "1    0    0"  >> $focb
+
+
 ./optseq2  --tr 1.5 --tprescan 0 --ntp 800 \
            --o $od/slottasktiming  --cmtx $od/contrast --mtx  $od/design \
            --sum $od/summary --log $od/log \
@@ -18,5 +30,6 @@ od=optseqout
            --tnullmin 2 \
            --tnullmax 8 \
            --tsearch .1 \
+           --focb $fobc \
            --nkeep 50 \
 

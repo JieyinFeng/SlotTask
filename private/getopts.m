@@ -23,7 +23,7 @@ function opts=getopts(varargin)
   
   %% define deafult paradigm for experiment
   opts.blocktypes = {'WINBLOCK','WINBLOCK','WINBLOCK','WINBLOCK','MOTOR','MOTOR','MOTOR','MOTOR'}; % TODO DECIDE ORDER
-  opts.trialsPerBlock = 108;
+  %opts.trialsPerBlock = 108;
   % will be setup in subject info -> genTimingOrder
 
   
@@ -37,7 +37,7 @@ function opts=getopts(varargin)
           case {'DEBUG'}
               opts.DEBUG=1;
               opts.screen=[800 600];
-              opts.trialsPerBlock=7; % to get at least one win
+              %opts.trialsPerBlock=7; % to get at least one win
           case {'screen'}
               i=i+1;
               if isa(varargin{i},'char')
