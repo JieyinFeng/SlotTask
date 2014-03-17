@@ -276,6 +276,7 @@ function SlotTask(sid,blk,varargin)
          % this only queries for response, w is passed to draw warning (not
          % impletmeneteD)
          [timeAtResponse, response] = chooseFruit(trialStartTime,numattempts,w,acceptableKeyPresses);
+         response=response(1); % incase we push 2 buttons
          rspnstime = timeAtResponse - trialStartTime;
          numattempts=numattempts+1;
 
@@ -348,6 +349,7 @@ function SlotTask(sid,blk,varargin)
         
         %           blocknum    trialnum  startime response responsetime trialscore total
         trialinfo = [ subject.experiment(trialnum,1) trialnum trialStartTime response rspnstime subject.experiment(trialnum,[colIDX('WIN'),colIDX('Score')]) ];
+        disp([ length(trialinfo)         size(subject.order) ] )
         subject.order(trialnum,:) = trialinfo;
 
         % update trial in block
