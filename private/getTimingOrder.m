@@ -30,10 +30,18 @@ function [experiment, col2idx ] = getTimingOrder(blocktypes)
    warning('too few mat files in timing/mats, randomly sampled with what we have')
   end
 
-  % initialize an experiment matrix, we dont know how long it will be
-  experiment=[];
+  
   % shuffle up the order
   mfiorder=randsample(matfileidx,numblocks);
+  
+  % and undo all that hard work
+  % for the piolot we have an order we want to stick to
+  matfileidx=find(cellfun( @(x) all(paren(fliplr(['padding' x]),1:3)=='tam'), files));
+  mfiorder= [ matfileidx([1 3]) matfileidx(1:4) ];
+  
+  % initialize an experiment matrix, we dont know how long it will be
+  experiment=[];
+  
   for i=1:length(mfiorder)
       fprintf('%d: %s\n',i,files{mfiorder(i)});
   end

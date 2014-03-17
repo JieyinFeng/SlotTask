@@ -22,7 +22,7 @@ function opts=getopts(varargin)
   %opts.stimtimes      = stimtimes;
   
   %% define deafult paradigm for experiment
-  opts.blocktypes = {'MOTOR','MOTOR','MOTOR','MOTOR','WINBLOCK','WINBLOCK','WINBLOCK','WINBLOCK'}; 
+  opts.blocktypes = {'MOTOR','MOTOR','WINBLOCK','WINBLOCK','WINBLOCK','WINBLOCK'}; 
   % will be setup in subject info -> genTimingOrder
 
   

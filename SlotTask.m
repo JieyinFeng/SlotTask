@@ -31,16 +31,14 @@
 %     [ ] are alarm and money okay?
 %  [ ] establish scoring (how to do 1/4 breakdown)
 %  [ ] fix instructions
-%  [ ] What information needs to be saved?
-%  [ ] buffers two sounds
-%  [ ] add warning to chooseFruit if participant takes too long
+%  [?] add warning to chooseFruit if participant takes too long
 %
 % 20131024 - WF
 %  - start coding, copy of CogEmoFaceReward  
 %  - have slot pictures
 % 20130216 - WF
 %  - use private functions from MEGClockTask
-% 20130219 - WF
+% 20140219 - WF
 %  - use waittilltime/waittill to get percision timing on flips
 
 %% SlotTask
@@ -403,7 +401,25 @@ function SlotTask(sid,blk,varargin)
      end 
 
     subject.trlTpts.EndOfRunTime(subject.run_num)=GetSecs();
-    msgAndCloseEverything(['You''ve finished this block!\nTotal score is ', num2str(subject.experiment(trialnum,colIDX('Score'))) ,' points\n\nThanks for playing!']);
+    
+    %% show a rest screen for 1 minute
+    soothdir=fullfile('imgs','Scenes','Soothing');
+    allfiles=dir(soothdir);
+    files={allfiles.name};
+    imgnum = RandSample(3:length(files),[1 1]);
+
+    imgfile=strcat('imgs/Scenes/Soothing/',files{imgnum});
+    [imdata, colormap, alpha]=imread(imgfile);
+    %imdata(:, :, 4) = alpha(:, :); 
+    imgfiletex = Screen('MakeTexture', w, imdata);
+    Screen('DrawTexture', w,  imgfiletex);
+    Screen('FillRect', w, 264, [0 0 800 20] )
+    DrawFormattedText(w, ['Total score is ', num2str(subject.experiment(trialnum,colIDX('Score'))) '   Now Relax' ] ,...
+           0,0,black);
+       fprintf('%s\n',message)
+       Screen('Flip', w);
+       
+    msgAndCloseEverything('Thanks for playing!');
     return
 
   catch
