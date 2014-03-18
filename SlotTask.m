@@ -131,7 +131,7 @@ function SlotTask(sid,blk,varargin)
      % escKey  = KbName('ESCAPE');
      
      % RA can push space, subject can push button box
-     acceptableKeyPresses = [  KbName('1!') KbName('2@') KbName('3#') KbName('4$') KbName('space')];
+     acceptableKeyPresses = [  KbName('2@') KbName('3#') KbName('4$') KbName('5!')  KbName('space')];
 
      
     
@@ -199,11 +199,11 @@ function SlotTask(sid,blk,varargin)
      end
      
      %% wait for scanner start
-     DrawFormattedText(w, '^Get Ready^','center','center',black);
+     DrawFormattedText(w, '=Get Ready=','center','center',black);
      Screen('Flip', w);
 
      % start when we get ^ for scanner
-     StartOfRunTime = waitForResponse('6^');
+     StartOfRunTime = waitForResponse('=+');
      subject.trlTpts.StartOfRunTime(subject.run_num)=StartOfRunTime;
      
   
@@ -220,7 +220,7 @@ function SlotTask(sid,blk,varargin)
         subject.trialnum= trialnum;
         trialpart=1; % for each event (part) we record timing
 
-        %% compute all waittills based on current time
+        %% get start time based on previous ITI/ISI
         % todo use
         idealtime.start       = 0;
         if(trialnum ~= startTrial)
@@ -252,7 +252,8 @@ function SlotTask(sid,blk,varargin)
 
         %% 1. Start the trial (display the slot machine)
         Screen('DrawTexture', w,  slotimg.CHOOSE);
-        [~,trialStartTime] = Screen('Flip', w, idealtime.start-slack);
+        % dont clear the buffer... so we can show warnings
+        [~,trialStartTime] = Screen('Flip', w, idealtime.start-slack,1);
         % this will eventaully go to afni's 3dDeconvolve
         subject.stimtime(trialnum).start=trialStartTime - StartOfRunTime;
         
@@ -304,8 +305,8 @@ function SlotTask(sid,blk,varargin)
         % struct2array(idealtimes) == [ idealtimes.start trlTimes ]
         
         %% 3. SHOW SPIN (AKA ISI)
-        
-        Screen('DrawTexture', w,  slotimg.BLUR); 
+        Screen('FillRect', w, 264, [] ) % clear any warnings
+        Screen('DrawTexture', w,  slotimg.BLUR);
         [~,spinOnset ] = Screen('Flip', w, idealtime.spinOnset -slack);
         
         %update timing
@@ -323,6 +324,26 @@ function SlotTask(sid,blk,varargin)
            % get what image should be shown for this trialnum
            imgtype = scoreTrial(  subject.experiment( trialnum, colIDX('WIN') )  );
            Screen('DrawTexture', w,  slotimg.(imgtype)  ); 
+           % draw win amount, no gain, or xxxxx for contorl block
+           if(strcmp(subject.blocktype,'MOTOR'))
+               message='xxxxxxxxxxxxxxxxxxxxx';
+               msgcolor=[0 0 0];
+           elseif(subject.experiment( trialnum, colIDX('WIN') ) == 1 )
+               message=[num2str(subject.experiment(trialnum,colIDX('Score'))) ' points total' ];
+               msgcolor=[41    99    34];
+           else
+               message='no new points';
+               msgcolor=[0 0 0];
+           end
+           % text position should be relative to center of presentaiton part of screen 
+           %  upper left corner of slot feedback is 164.0,180.5 from center (add pixels to center in this box)
+           % center is 648/2 921/2
+            DrawFormattedText(w, message,...
+                    opts.screen(1)/2-120, ...
+                    opts.screen(2)/2-75 ,...
+                    msgcolor);
+          
+           
            [~,resultsOnset]=Screen('Flip', w,idealtime.resultOnset -slack);
            subject.stimtime(trialnum).(imgtype)=resultsOnset - StartOfRunTime;
 
@@ -349,7 +370,6 @@ function SlotTask(sid,blk,varargin)
         
         %           blocknum    trialnum  startime response responsetime trialscore total
         trialinfo = [ subject.experiment(trialnum,1) trialnum trialStartTime response rspnstime subject.experiment(trialnum,[colIDX('WIN'),colIDX('Score')]) ];
-        disp([ length(trialinfo)         size(subject.order) ] )
         subject.order(trialnum,:) = trialinfo;
 
         % update trial in block
@@ -385,9 +405,9 @@ function SlotTask(sid,blk,varargin)
         todisp= timemat - prevousend;
         todisp = [ todisp todisp(:,2)-todisp(:,1) ];
         eventid = {'start','pull','isi','result','recpt','iti'};
-        fprintf(' onset\tideal  \tactual  \tdiff\n')
+        fprintf('%02d  onset\tideal  \tactual  \tdiff\n',trialnum)
         for dispidx=1:trialpart
-          fprintf(' %s\t%.4f\t%.4f\t%.4f\n',eventid{dispidx},todisp(dispidx,:) )
+          fprintf('   %s\t%.4f\t%.4f\t%.4f\n',eventid{dispidx},todisp(dispidx,:) )
         end
         
         
@@ -415,13 +435,24 @@ function SlotTask(sid,blk,varargin)
     %imdata(:, :, 4) = alpha(:, :); 
     imgfiletex = Screen('MakeTexture', w, imdata);
     Screen('DrawTexture', w,  imgfiletex);
-    Screen('FillRect', w, 264, [0 0 800 20] )
-    DrawFormattedText(w, ['Total score is ', num2str(subject.experiment(trialnum,colIDX('Score'))) '   Now Relax' ] ,...
+    Screen('FillRect', w, 264, [0 0 800 40] )
+    DrawFormattedText(w, ['You have ', num2str(subject.experiment(trialnum,colIDX('Score'))) 'pts   Now Relax' ] ,...
            0,0,black);
-       fprintf('%s\n',message)
-       Screen('Flip', w);
-       
-    msgAndCloseEverything('Thanks for playing!');
+
+    Screen('Flip', w);
+    
+    %% wait a minute -- but listen for ESCAPSE to quit early
+    while(GetSecs()-subject.trlTpts.EndOfRunTime(subject.run_num) < 60 );
+        [ keyIsDown, timeAtRspns, keyCode ] = KbCheck;
+         if(keyCode(KbName('ESCAPE'))); 
+            msgAndCloseEverything('Early Quit!');
+            error('quit early\n');
+         end
+         WaitSecs(.2);
+    end
+    
+    %msgAndCloseEverything('Thanks for playing!');
+    closeEverything();
     return
 
   catch
@@ -438,9 +469,15 @@ function SlotTask(sid,blk,varargin)
     function [timeAtRspns, whichKeyCode ]=chooseFruit(starttime,numattempts,w,keys)
         % display screen
         if(numattempts>0)
+            Screen('FillRect', w, 264, [0 0 opts.screen(1) 40 ] ) % clear any warnings
+            DrawFormattedText(w, 'You choose that fruit last time!',...
+                    'center',30 ,...
+                    [254 0 0]);
+             Screen('Flip',w,0,1)
             % draw warning
             %fprintf('this is the %d attempt\n',numattempts);
         end
+        seenwarning=0;
         %%draw 
         while(1)
             % check for escape's
@@ -457,11 +494,22 @@ function SlotTask(sid,blk,varargin)
                     whichKeyCode=find(keyCode(keys));
                     break
                 end
-            end     
+            end
             
             % TODO:
             % flash warning if response takes too long
-            % if(GetSecs()-starttime>4)
+             if(timeAtRspns-starttime>1.5 && ~seenwarning)
+                 seenwarning=1;
+                % text position should be relative to center of presentaiton part of screen 
+                %  upper left corner of slot feedback is 164.0,180.5 from center (add pixels to center in this box)
+                % lower left corner of slot machine is 50,850
+                % center is 648/2 921/2
+                % Screen('DrawText',w,scoretext, opts.screen(1)/2-120, opts.screen(2)/2-130);
+                DrawFormattedText(w, 'Respond Faster! You''re missing trials!',...
+                    'center',opts.screen(2) - 30 ,...
+                    [254 0 0]);
+                Screen('Flip',w,0,1)
+             end
             
         end
         
@@ -479,6 +527,7 @@ function SlotTask(sid,blk,varargin)
   
     function msgAndCloseEverything(message)
        Priority(0); % set priority to normal 
+       Screen('FillRect', w, 264, [] ) % clear framebuffer
        % send last message
        DrawFormattedText(w, message,...
            'center','center',black);
