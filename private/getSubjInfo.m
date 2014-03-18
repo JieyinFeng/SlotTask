@@ -119,6 +119,9 @@ function subject=getSubjInfo(taskname,subject,opts,blk)
 
   % reset block list and score -- remove trials on the block we are going to try
   subject.order = resetOrder(subject.order,subject.run_num);
+  % clear previous stimtimes
+  % resetIdxs = find(subject.order(:,1)==subject.run_num);
+  % subject.stimtime = resetStimtimes(resetIdxs, subject.stimtime );
   
  
  %% set block type
