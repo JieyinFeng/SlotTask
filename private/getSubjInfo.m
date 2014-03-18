@@ -139,8 +139,8 @@ function subject=getSubjInfo(taskname,subject,opts,blk)
   if exist(subject.txtfile,'file')
           backup=[subject.txtfile '.' num2str(GetSecs()) '.bak'];
           fprintf('%s exists already exists\n', subject.txtfile)
-          fprintf('moving %s to %s\n', subject.txtfile, backup)
-          movefile(subject.txtfile, backup);
+          %fprintf('moving %s to %s\n', subject.txtfile, backup)
+          %movefile(subject.txtfile, backup);
   end
  
  %% show what we hve
