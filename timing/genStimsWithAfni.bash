@@ -9,17 +9,18 @@ runTime=300                  # length of run:  5min*60sec/min (was too long, 20m
 TR=1.5                       # t_r, MRI setting
 nTR=$(echo $runTime/$TR| bc) # number of TRs  # 200 TRs 
 
-avgRT=1       # slotstart display time
+avgRT=1      # slotstart display time
 resultTime=1  # receipt display time (was result+reciept)
 
 # parameters to test
-nIts=100      # how many random timings to genereate to test a condition
+nIts=200      # how many random timings to genereate to test a condition
 maxCatch=20   # start at 0, go up by 5, to this number
 winRatio=.33  # ratio of wins to nowins (not actually set here, for loop iterated)
 meanISI=4     # time we want for ISI AND ITI (not actually set here, for loop iteratated)
 
 # clear previous run
-rm stims/*
+[ -d stims ] && mv stims stims.$(date +"%F_%H:%M")
+mkdir stims
 # start new record of each iteration
 #        sum root mean square of the measurement error variance for each condition (minimize)
 #        general linear test (Ward 1998 http://afni.nimh.nih.gov/pub/dist/doc/manual/3dDeconvolve.pdf pg43,82-88)
@@ -28,10 +29,12 @@ rm stims/*
 allinfo=info.txt
 echo "it nTrial nWin nCatch RMSerror.start RMSerror.antic RMSerror.win RMSerror.nowin GLT.w-n GLT.a-w GLT.a-n GLT.a-w-n r.win r.nowin" |tee $allinfo
 
-for winRatio in .25 .33 .5; do
-for meanISI in 3 4 5; do
+for winRatio in .25 .5; do
+for meanISI in 2 3 4 5; do
  for nCatch in $(seq 0 5 $maxCatch); do
+  possible=1
   for i in $(seq 1 $nIts); do
+    [ $possible -eq 0 ] && continue
 
     # total number of trials (endtime-last iti)/(RT+ISI+Result+ITI) #bc floors division
     nTrials=$(echo "($runTime-(12-$meanISI))/($avgRT+$meanISI+$resultTime+$meanISI)"|bc) 
@@ -73,7 +76,7 @@ for meanISI in 3 4 5; do
           #-min_rest 2 -max_rest 8 
           #  -seed 31415
     
-    
+    if [ $? -ne 0 ]; then echo "impossible combination: ${nWin}w ${nCatch}c  ${nTrials}t " 1>&2; possible=0; continue; fi 
     # combine all the spins, as these are not different stims
     # (specifiying them as different allowed us to enfoce an order)
     perl -lne 'print sprintf("%.02f",$&) while(/\d+\.?\d*/g)' stims/${ii}_stimes_*spin*1D | \
@@ -103,9 +106,9 @@ for meanISI in 3 4 5; do
           -stim_label 1 slotstart                               \
           -stim_times_AM1 2 stims/${ii}_stimes_anticipation.1D 'dmBLOCK(1)' \
           -stim_label     2 anticipation                       \
-          -stim_times 3 stims/${ii}_stimes_*_win.1D 'BLOCK(1.5,1)'    \
+          -stim_times 3 stims/${ii}_stimes_*_win.1D "BLOCK($resultTime,1)"    \
           -stim_label 3 win                                \
-          -stim_times 4 stims/${ii}_stimes_*nowin.1D 'BLOCK(1.5,1)' \
+          -stim_times 4 stims/${ii}_stimes_*nowin.1D "BLOCK($resultTime,1)" \
           -stim_label 4 nowin                            \
           -num_glt 4                                     \
           -gltsym "SYM: win  -nowin"              -glt_label 1 wVn  \

@@ -225,14 +225,21 @@ function SlotTask(sid,blk,varargin)
         trialpart=1; % for each event (part) we record timing
 
         %% get start time based on previous ITI/ISI
-        % todo use
+        %  normally, we get the ITI onset and add the ITI duration
+        %    on a catch trial, we want to add the ISI to the ISI onset
+        %   
+        %  on catch trials the Result and ITI timing fields are both set to
+        %  the ISI onset, so we just need to add ISI instead of ITI
         idealtime.start       = 0;
         if(trialnum ~= startTrial)
             % get onset of ITI by inspecting the timing structure
             ITItrialnum = length(subject.timing(1,:,1) ); % last one, 5 or 6
-            expectedITIOnset = subject.timing(trialnum-1,ITItrialnum,1);
-            % get duration from experiment
             
+            % if was a catch, this will be ISI onset
+            % otherwise it will be ITI onset
+            expectedITIOnset = subject.timing(trialnum-1,ITItrialnum,1);
+            
+            % get duration from experiment
             % if catch trial,  ITI comes from spin length
             % not ITI column
             if(subject.experiment(trialnum-1,colIDX('Result')) == 0 )
@@ -267,6 +274,13 @@ function SlotTask(sid,blk,varargin)
         
         subject.trlTpts.start(trialnum)=trialStartTime;
         
+        %% is ITI too big (esp catch trials?)
+%         if(trailnum~=startTrial && )
+%             actualITI = TrialStartTime - 
+%             if
+%               fprintf('WARNING: ITI too long (should be %f, is %f)\n',)
+%             end
+%         end
         
         %% 2. choose a fruit -- get RT
         % get prevchoice so we can make sure we choose differently
@@ -313,7 +327,7 @@ function SlotTask(sid,blk,varargin)
         trlTimes= cumsum( offsets );
         
         idealtime.spinOnset   = trlTimes(1);
-        idealtime.resultOnset = trlTimes(2);
+        idealtime.resultOnset = trlTimes(2); % we will reset this if catch
         idealtime.itiOnset    = trlTimes(3);
         % struct2array(idealtimes) == [ idealtimes.start trlTimes ]
         
@@ -365,8 +379,14 @@ function SlotTask(sid,blk,varargin)
            subject.stimtime(trialnum).ITI=itiOnset - StartOfRunTime;
            
         else
-           fprintf('catch trial!\n')
-           resultsOnset=GetSecs();
+           fprintf('catch trial!\n');
+           subject.stimtime(trialnum).Catch=1;
+           % this are set to spin onset instead of 0
+           % because ITI at start uses this timing as end of trial
+           % -- need to have ISI start in order for ISI calculation
+           idealtime.resultOnset=idealtime.spinOnset;
+           idealtime.itiOnset=idealtime.spinOnset;
+           resultsOnset=spinOnset;
            itiOnset=resultsOnset;
         end
 
@@ -511,7 +531,7 @@ function SlotTask(sid,blk,varargin)
                 DrawFormattedText(w, 'Respond Faster! You''re missing trials!',...
                     'center',opts.screen(2) - 30 ,...
                     [254 0 0]);
-                Screen('Flip',w,0,1)
+                Screen('Flip',w,0,1);
              end
             
         end

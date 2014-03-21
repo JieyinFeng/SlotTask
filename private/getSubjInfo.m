@@ -56,7 +56,8 @@ function subject=getSubjInfo(taskname,subject,opts,blk)
   % generate experiment (block (emotion+reward) and face number order
   if ~ismember('experiment',fields(subject)), 
     %[subject.experiment, subject.expercol2idx ] = genTimingOrder(opts.blocktypes,opts.trialsPerBlock,opts.stimtimes);
-    [subject.experiment, subject.expercol2idx ] = getTimingOrder(opts.blocktypes);
+    subject.blocktypes=opts.blocktypes;
+    [subject.experiment, subject.expercol2idx ] = getTimingOrder(subject.blocktypes);
 
     % initialize the order of events
     % this will be filled with "experiment" and behavioral actions/results (e.g. RT, ev, score)
@@ -139,6 +140,9 @@ function subject=getSubjInfo(taskname,subject,opts,blk)
   if exist(subject.txtfile,'file')
           backup=[subject.txtfile '.' num2str(GetSecs()) '.bak'];
           fprintf('%s exists already exists\n', subject.txtfile)
+          % with below commented:
+          % will just write into the file -- extending it instead of
+          %  starting anew
           %fprintf('moving %s to %s\n', subject.txtfile, backup)
           %movefile(subject.txtfile, backup);
   end

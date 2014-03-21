@@ -35,11 +35,14 @@ function opts=getopts(varargin)
               opts.blocktypes = {'WINBLOCK','MOTOR'};
               opts.screen=[800 600];
               %opts.trialsPerBlock=7; % to get at least one win
+          case {'nopet'}
+              opts.blocktypes={'WINBLOCK','WINBLOCK','WINBLOCK','WINBLOCK'};
+              
           case {'screen'}
               i=i+1;
               if isa(varargin{i},'char')
                   
-                % CogEmoFaceReward('screen','mac laptop')
+                % SlotTask('screen','eyelab')
                 switch varargin{i}
                     case {'mac laptop'}
                         opts.screen=[1680 1050]; %mac laptop
@@ -55,10 +58,6 @@ function opts=getopts(varargin)
               else
                 opts.screen=varargin{i};    
               end    
-              
-              
-%           case {'MEG'}
-%               useMEG()
 
           otherwise
               fprintf('unknown option #%d\n',i)

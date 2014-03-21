@@ -81,7 +81,8 @@ writeAnticipation <- function(st.df,iteration) {
   sink()
 }
 # we want timing for this set of stim times in a .mat 
-genMAT <- function(toprow=getTopTen()[1,],name='itname') {
+genMAT <- function(top=getTopTen()[1,],name='itname') {
+ require(R.matlab)
  # ISI's are the actually important bit 
  #order is 'Block','Spin','ISI','Result','Receipt','ITI','WIN','Score'
  # where 
@@ -96,44 +97,49 @@ genMAT <- function(toprow=getTopTen()[1,],name='itname') {
  #  ISI     Spin is ISI
  #  Receipt Result will tell score if needed
 
- print(toprow)
 
- stimtimename<-do.call(sprintf,c('t%02d_w%02d_c%02d_%04d',as.list(toprow[1,c('nTrial','nWin','nCatch','it')])))
- st.df<-getStimTime(stimtimename)
- if(name=='itname'){ name <- sprintf('GLT%.04f_%s',toprow$GLTsum,stimtimename) }
+ for(i in 1:nrow(top)) {
+   toprow <- top[i,]
 
- # get all the times by reading in each 1D file made by make_random_stimes.py
+   stimtimename<-do.call(sprintf,c('t%02d_w%02d_c%02d_%04d',as.list(toprow[1,c('nTrial','nWin','nCatch','it')])))
 
- startinds <- which(st.df$type=='slotstart')
-
- timing=matrix(0,length(startinds),4)
- mati=1;
- for(si in startinds ){ 
-   starttime <- st.df$onset[si]    # ignored, we assumed avgRT -- person will not respond same
-   startlen  <- st.df$duration[si] # ignored, for the same reason
-   
-   spinlen   <- st.df$nextwait[si] # time between button push and score
-
-   # and if this is not a catch trial
-   if(nrow(st.df)>si && st.df$type[si+1] != 'slotstart'){
-      resultlen <- st.df$duration[si+1]    # should be constant (1s)
-      ITIlen    <- st.df$nextwait[si+1]    
-      score     <- ifelse(st.df$type[si+1]=='win',1,0)
-
-   # otherwise, zero everything
-   }else{
-      resultlen <- 0
-      ITIlen    <- 0 
-      score     <- 0
-   }
-   
-   timing[mati,]=cbind(spinlen,resultlen,ITIlen,score)
-   mati<-mati+1
+   st.df<-getStimTime(stimtimename)
+   if(name=='itname'){ filename <- sprintf('GLT%.04f_%s',toprow$GLTsum,stimtimename) }
+  
+   # get all the times by reading in each 1D file made by make_random_stimes.py
+  
+   startinds <- which(st.df$type=='slotstart')
+  
+   timing=matrix(0,length(startinds),4)
+   mati=1;
+   for(si in startinds ){ 
+     starttime <- st.df$onset[si]    # ignored, we assumed avgRT -- person will not respond same
+     startlen  <- st.df$duration[si] # ignored, for the same reason
+     
+     spinlen   <- st.df$nextwait[si] # time between button push and score
+  
+     # and if this is not a catch trial
+     if(nrow(st.df)>si && st.df$type[si+1] != 'slotstart'){
+        resultlen <- st.df$duration[si+1]    # should be constant (1s)
+        ITIlen    <- st.df$nextwait[si+1]    
+        score     <- ifelse(st.df$type[si+1]=='win',1,0)
+  
+     # otherwise, zero everything
+     }else{
+        resultlen <- 0
+        ITIlen    <- 0 
+        score     <- 0
+     }
+     
+     timing[mati,]=cbind(spinlen,resultlen,ITIlen,score)
+     mati<-mati+1
+  }
+  
+  cat('writing ' , stimtimename, 'to ',filename,'\n')
+  writeMat(con=file.path('mats',paste0(filename,".mat")), block=timing)
  }
- 
- require(R.matlab)
- writeMat(con=file.path('mats',paste0(name,".mat")), block=timing)
- return(timing)
+ #return(timing)
+
 }
 
 visTiming <- function(st.df) {

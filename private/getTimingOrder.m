@@ -35,9 +35,13 @@ function [experiment, col2idx ] = getTimingOrder(blocktypes)
   mfiorder=randsample(matfileidx,numblocks);
   
   % and undo all that hard work
-  % for the piolot we have an order we want to stick to
+  % for the pilot we have an order we want to stick to
   matfileidx=find(cellfun( @(x) all(paren(fliplr(['padding' x]),1:3)=='tam'), files));
-  mfiorder= [ matfileidx(1:4) matfileidx(1:4) ];
+  if(numblocks==8)
+    mfiorder= [ matfileidx(1:4) matfileidx(1:4) ];
+  else
+      mfiorder= matfileidx(1:4);
+  end
   
   % initialize an experiment matrix, we dont know how long it will be
   experiment=[];
