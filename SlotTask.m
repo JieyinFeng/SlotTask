@@ -310,7 +310,8 @@ function SlotTask(sid,blk,varargin)
 
          %WaitSec(.0001) % so we dont go endlessly thorugh the loop
         end
-        fprintf('%02d  pressed %d @ %f\n',trialnum, response, rspnstime);
+        fprintf('%02d  pressed %d @ %f, wait: %f %f\n',trialnum, response, rspnstime,...
+            subject.experiment(trialnum,[colIDX('Spin'),colIDX('ITI')]));
         
         subject.stimtime(trialnum).response=timeAtResponse - StartOfRunTime;
         
@@ -437,7 +438,7 @@ function SlotTask(sid,blk,varargin)
         
         todisp= timemat - prevousend;
         todisp = [ todisp todisp(:,2)-todisp(:,1) ];
-        eventid = {'start','pull','isi','result','recpt','iti'};
+        eventid = {'start','pull  ','isi  ','result','recpt','iti'};
         fprintf('%02d  onset\tideal  \tactual  \tdiff\n',trialnum)
         for dispidx=1:trialpart
           fprintf('   %s\t%.4f\t%.4f\t%.4f\n',eventid{dispidx},todisp(dispidx,:) )
