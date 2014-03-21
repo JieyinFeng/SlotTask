@@ -25,7 +25,9 @@ folder=fullfile('stimtimes', ...
 if(~exist(folder,'dir')), mkdir(folder), end
 
 % combine all results into one fields
-%  so we can have one regressor for win, nowin, xxx, and hash
+%  so we can have one regressor for win, nowin, xxx, and hash 
+%   -- XXX and
+%  hash dont exist for nopet
 %     and we can find catch trials (no results/reciept)
 allresults ={a.subject.stimtime.WIN;  ...
              a.subject.stimtime.NOWIN;   ...
